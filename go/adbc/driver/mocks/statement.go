@@ -255,10 +255,8 @@ func (st *statement) SetSqlQuery(query string) error {
 //
 // This invalidates any prior result sets on this statement.
 func (st *statement) ExecuteQuery(ctx context.Context) (array.RecordReader, int64, error) {
-	return nil, -1, adbc.Error{
-		Code: adbc.StatusNotImplemented,
-		Msg:  "ExecuteQuery not yet implemented for mocks driver",
-	}
+	mockReader := &mockReader{haveNext: true}
+	return mockReader, -1, nil
 }
 
 // ExecuteUpdate executes a statement that does not generate a result

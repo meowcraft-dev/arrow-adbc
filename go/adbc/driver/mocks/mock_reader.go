@@ -19,6 +19,7 @@ package mocks
 
 import (
 	"fmt"
+	"math"
 	"strings"
 	"sync/atomic"
 
@@ -229,70 +230,70 @@ func (r *mockReader) Next() bool {
 func mockInt8(mem memory.Allocator) arrow.Array {
 	ib := array.NewInt8Builder(mem)
 	defer ib.Release()
-	ib.AppendValues([]int8{1, 2, 3, 4}, nil)
+	ib.AppendValues([]int8{math.MinInt8, 0, 1, math.MaxInt8}, nil)
 	return ib.NewInt8Array()
 }
 
 func mockInt16(mem memory.Allocator) arrow.Array {
 	ib := array.NewInt16Builder(mem)
 	defer ib.Release()
-	ib.AppendValues([]int16{1, 2, 3, 4}, nil)
+	ib.AppendValues([]int16{math.MinInt16, 0, 1,math.MaxInt16}, nil)
 	return ib.NewInt16Array()
 }
 
 func mockInt32(mem memory.Allocator) arrow.Array {
 	ib := array.NewInt32Builder(mem)
 	defer ib.Release()
-	ib.AppendValues([]int32{1, 2, 3, 4}, nil)
+	ib.AppendValues([]int32{math.MinInt32,0, 1, math.MaxInt32}, nil)
 	return ib.NewInt32Array()
 }
 
 func mockInt64(mem memory.Allocator) arrow.Array {
 	ib := array.NewInt64Builder(mem)
 	defer ib.Release()
-	ib.AppendValues([]int64{1, 2, 3, 4}, nil)
+	ib.AppendValues([]int64{math.MinInt64, 0, 1, math.MaxInt64}, nil)
 	return ib.NewInt64Array()
 }
 
 func mockUint8(mem memory.Allocator) arrow.Array {
 	ib := array.NewUint8Builder(mem)
 	defer ib.Release()
-	ib.AppendValues([]uint8{1, 2, 3, 4}, nil)
+	ib.AppendValues([]uint8{0, 1, 2, math.MaxUint8}, nil)
 	return ib.NewUint8Array()
 }
 
 func mockUint16(mem memory.Allocator) arrow.Array {
 	ib := array.NewUint16Builder(mem)
 	defer ib.Release()
-	ib.AppendValues([]uint16{1, 2, 3, 4}, nil)
+	ib.AppendValues([]uint16{0, 1, 2, math.MaxUint16}, nil)
 	return ib.NewUint16Array()
 }
 
 func mockUint32(mem memory.Allocator) arrow.Array {
 	ib := array.NewUint32Builder(mem)
 	defer ib.Release()
-	ib.AppendValues([]uint32{1, 2, 3, 4}, nil)
+	ib.AppendValues([]uint32{0, 1, 2, math.MaxUint32}, nil)
 	return ib.NewUint32Array()
 }
 
 func mockUint64(mem memory.Allocator) arrow.Array {
 	ib := array.NewUint64Builder(mem)
 	defer ib.Release()
-	ib.AppendValues([]uint64{1, 2, 3, 4}, nil)
+	ib.AppendValues([]uint64{0, 1, 2, math.MaxUint64}, nil)
 	return ib.NewUint64Array()
 }
 
 func mockFloat32(mem memory.Allocator) arrow.Array {
 	ib := array.NewFloat32Builder(mem)
 	defer ib.Release()
-	ib.AppendValues([]float32{1, 2, 3, 4}, nil)
+	ib.AppendValues([]float32{math.SmallestNonzeroFloat32, -1, 0, math.MaxFloat32}, nil)
 	return ib.NewFloat32Array()
 }
 
 func mockFloat64(mem memory.Allocator) arrow.Array {
 	ib := array.NewFloat64Builder(mem)
 	defer ib.Release()
-	ib.AppendValues([]float64{1, 2, 3, 4}, nil)
+	ib.AppendValues([]float64{math.SmallestNonzeroFloat64, -1, 0, math.MaxFloat64}, nil)
 	return ib.NewFloat64Array()
 }
 
@@ -320,7 +321,7 @@ func mockBinary(mem memory.Allocator) arrow.Array {
 func mockString(mem memory.Allocator) arrow.Array {
 	ib := array.NewStringBuilder(mem)
 	defer ib.Release()
-	ib.AppendValues([]string{"a", "b", "c", "d"}, nil)
+	ib.AppendValues([]string{"a", "ab", "abc", "abcd"}, nil)
 	return ib.NewStringArray()
 }
 

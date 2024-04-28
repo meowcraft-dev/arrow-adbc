@@ -255,7 +255,10 @@ func (st *statement) SetSqlQuery(query string) error {
 //
 // This invalidates any prior result sets on this statement.
 func (st *statement) ExecuteQuery(ctx context.Context) (array.RecordReader, int64, error) {
-	mockReader := &mockReader{haveNext: true}
+	mockReader, err := NewMockReader(st.Query)
+	if err != nil {
+		return nil, -1, err
+	}
 	return mockReader, -1, nil
 }
 

@@ -20,6 +20,8 @@ package mocks
 import (
 	"fmt"
 	"math"
+	"regexp"
+	"strconv"
 	"strings"
 	"sync/atomic"
 
@@ -39,10 +41,11 @@ type mockReader struct {
 
 type typeBuilder struct {
 	field   arrow.Field
-	builder func(memory.Allocator) arrow.Array
+	builder func(memory.Allocator,int64) arrow.Array
 }
 
 var (
+	rowsRegex      = regexp.MustCompile(`^(?P<rows>\d+)[\s]*:`)
 	availableTypes = map[string]typeBuilder{
 		"int8": typeBuilder{
 			field:   arrow.Field{Name: "int8", Type: arrow.PrimitiveTypes.Int8},
@@ -163,29 +166,79 @@ var (
 	}
 )
 
-// Create a mockReader according to the query
-// The query should be a list of types separated by commas
-// The returned mockReader will have the types in the same order
-func NewMockReader(query string) (*mockReader, error) {
-	requestTypes := strings.Split(query, ",")
+func parseQuery(query string) ([]arrow.Field, []arrow.Array, int64, error) {
+	query = strings.TrimSpace(query)
+	matches := rowsRegex.FindStringSubmatch(query)
+	rows := int64(1)
+	rowsString := ""
+	if len(matches) == 2 {
+		var err error
+		rowsString = matches[rowsRegex.SubexpIndex("rows")]
+		if rows, err = strconv.ParseInt(rowsString, 10, 64); err != nil {
+			return nil, nil, -1, err
+		}
+	}
 	mem := memory.NewCheckedAllocator(memory.NewGoAllocator())
 	fields := make([]arrow.Field, 0)
 	fieldValues := make([]arrow.Array, 0)
-	for _, t := range requestTypes {
-		t = strings.TrimSpace(t)
+
+	query = strings.TrimSpace(query[len(rowsString):])
+	if query[0] == ':' {
+		query = query[1:]
+	}
+
+	var t string
+	for {
+		var requestTypes []string
+		if strings.HasPrefix(query, "list") {
+			// TODO: check if this is a valid list type
+			// query = strings.TrimSpace(query[4:])
+			// if query[0] == '<' && query[len(query)-1] == '>' {
+			// 	query = query[1 : len(query)-1]
+			// }
+			
+			break
+		}
+		requestTypes = strings.SplitN(query, ",", 2)
+
+		if len(requestTypes) == 2 {
+			t = strings.TrimSpace(requestTypes[0])
+			query = strings.TrimSpace(requestTypes[1])
+		} else if len(requestTypes) == 1 {
+			t = strings.TrimSpace(requestTypes[0])
+			query = ""
+		}
 		if builder, ok := availableTypes[t]; ok {
 			fields = append(fields, builder.field)
-			fieldValues = append(fieldValues, builder.builder(mem))
+			fieldValues = append(fieldValues, builder.builder(mem, rows))
+		} else if t == "list" {
+			fields = append(fields, arrow.Field{Name: "list", Type: arrow.ListOf(arrow.PrimitiveTypes.Int8)})
+			fieldValues = append(fieldValues, mockListInt8(mem))
 		} else {
-			return nil, adbc.Error{
+			return nil, nil, -1, adbc.Error{
 				Code: adbc.StatusInvalidArgument,
 				Msg:  fmt.Sprintf("unknown type %s", t),
 			}
 		}
+
+		if len(query) == 0 {
+			break
+		}
 	}
 
+	return fields, fieldValues, rows, nil
+}
+
+// Create a mockReader according to the query
+// The query should be a list of types separated by commas
+// The returned mockReader will have the types in the same order
+func NewMockReader(query string) (*mockReader, error) {
+	fields, fieldValues, rows, err := parseQuery(query)
+	if err != nil {
+		return nil, err
+	}
 	schema := arrow.NewSchema(fields, nil)
-	rec := array.NewRecord(schema, fieldValues, 4)
+	rec := array.NewRecord(schema, fieldValues, rows)
 	rec.Retain()
 	return &mockReader{
 		refCount: 1,
@@ -227,226 +280,354 @@ func (r *mockReader) Next() bool {
 	return false
 }
 
-func mockInt8(mem memory.Allocator) arrow.Array {
+func mockListInt8(mem memory.Allocator) arrow.Array {
+	listBuilder := array.NewListBuilder(mem, arrow.PrimitiveTypes.Int8)
+	defer listBuilder.Release()
+
+	int8Builder := listBuilder.ValueBuilder().(*array.Int8Builder)
+
+	// Create a list of int8 values. For example, create 3 lists with varying lengths.
+	lists := [][]int8{
+		{1, 2, 3},
+		{4, 5},
+		{6},
+		{},
+	}
+
+	for _, vals := range lists {
+		listBuilder.Append(true) // Append true to indicate a valid list item
+		for _, val := range vals {
+			int8Builder.Append(val)
+		}
+	}
+
+	return listBuilder.NewArray()
+}
+
+func mockInt8(mem memory.Allocator, rows int64) arrow.Array {
 	ib := array.NewInt8Builder(mem)
 	defer ib.Release()
-	ib.AppendValues([]int8{math.MinInt8, 0, 1, math.MaxInt8}, nil)
+	values := make([]int8, rows)
+	for i := int64(0); i < rows; i++ {
+		values[i] = int8(i)
+	}
+	ib.AppendValues(values, nil)
 	return ib.NewInt8Array()
 }
 
-func mockInt16(mem memory.Allocator) arrow.Array {
+func mockInt16(mem memory.Allocator, rows int64) arrow.Array {
 	ib := array.NewInt16Builder(mem)
 	defer ib.Release()
-	ib.AppendValues([]int16{math.MinInt16, 0, 1,math.MaxInt16}, nil)
+	values := make([]int16, rows)
+	for i := int64(0); i < rows; i++ {
+		values[i] = int16(i)
+	}
+	ib.AppendValues(values, nil)
 	return ib.NewInt16Array()
 }
 
-func mockInt32(mem memory.Allocator) arrow.Array {
+
+func mockInt32(mem memory.Allocator, rows int64) arrow.Array {
 	ib := array.NewInt32Builder(mem)
 	defer ib.Release()
-	ib.AppendValues([]int32{math.MinInt32,0, 1, math.MaxInt32}, nil)
+	values := make([]int32, rows)
+	for i := int64(0); i < rows; i++ {
+		values[i] = int32(i)
+	}
+	ib.AppendValues(values, nil)
 	return ib.NewInt32Array()
 }
 
-func mockInt64(mem memory.Allocator) arrow.Array {
+func mockInt64(mem memory.Allocator, rows int64) arrow.Array {
 	ib := array.NewInt64Builder(mem)
 	defer ib.Release()
-	ib.AppendValues([]int64{math.MinInt64, 0, 1, math.MaxInt64}, nil)
+	values := make([]int64, rows)
+	for i := int64(0); i < rows; i++ {
+		values[i] = int64(i)
+	}
+	ib.AppendValues(values, nil)
 	return ib.NewInt64Array()
 }
 
-func mockUint8(mem memory.Allocator) arrow.Array {
+func mockUint8(mem memory.Allocator, rows int64) arrow.Array {
 	ib := array.NewUint8Builder(mem)
 	defer ib.Release()
-	ib.AppendValues([]uint8{0, 1, 2, math.MaxUint8}, nil)
+	values := make([]uint8, rows)
+	for i := int64(0); i < rows; i++ {
+		values[i] = uint8(i)
+	}
+	ib.AppendValues(values, nil)
 	return ib.NewUint8Array()
 }
 
-func mockUint16(mem memory.Allocator) arrow.Array {
+func mockUint16(mem memory.Allocator, rows int64) arrow.Array {
 	ib := array.NewUint16Builder(mem)
 	defer ib.Release()
-	ib.AppendValues([]uint16{0, 1, 2, math.MaxUint16}, nil)
+	values := make([]uint16, rows)
+	for i := int64(0); i < rows; i++ {
+		values[i] = uint16(i)
+	}
+	ib.AppendValues(values, nil)
 	return ib.NewUint16Array()
 }
 
-func mockUint32(mem memory.Allocator) arrow.Array {
+func mockUint32(mem memory.Allocator, rows int64) arrow.Array {
 	ib := array.NewUint32Builder(mem)
 	defer ib.Release()
-	ib.AppendValues([]uint32{0, 1, 2, math.MaxUint32}, nil)
+	values := make([]uint32, rows)
+	for i := int64(0); i < rows; i++ {
+		values[i] = uint32(i)
+	}
+	ib.AppendValues(values, nil)
 	return ib.NewUint32Array()
 }
 
-func mockUint64(mem memory.Allocator) arrow.Array {
+func mockUint64(mem memory.Allocator, rows int64) arrow.Array {
 	ib := array.NewUint64Builder(mem)
 	defer ib.Release()
-	ib.AppendValues([]uint64{0, 1, 2, math.MaxUint64}, nil)
+	values := make([]uint64, rows)
+	for i := int64(0); i < rows; i++ {
+		values[i] = uint64(i)
+	}
+	ib.AppendValues(values, nil)
 	return ib.NewUint64Array()
 }
 
-func mockFloat32(mem memory.Allocator) arrow.Array {
+func mockFloat32(mem memory.Allocator, rows int64) arrow.Array {
 	ib := array.NewFloat32Builder(mem)
 	defer ib.Release()
-	ib.AppendValues([]float32{math.SmallestNonzeroFloat32, -1, 0, math.MaxFloat32}, nil)
+	values := make([]float32, 0, rows)
+	if rows > 3 {
+		values = append(values, math.SmallestNonzeroFloat32, -1, 0, math.MaxFloat32)
+	}
+	for i := int64(len(values)); i < rows; i++ {
+		values = append(values, float32(i))
+	}
+	ib.AppendValues(values, nil)
 	return ib.NewFloat32Array()
 }
 
-func mockFloat64(mem memory.Allocator) arrow.Array {
+func mockFloat64(mem memory.Allocator, rows int64) arrow.Array {
 	ib := array.NewFloat64Builder(mem)
 	defer ib.Release()
-	ib.AppendValues([]float64{math.SmallestNonzeroFloat64, -1, 0, math.MaxFloat64}, nil)
+	values := make([]float64, 0, rows)
+	if rows > 3 {
+		values = append(values, math.SmallestNonzeroFloat64, -1, 0, math.MaxFloat64)
+	}
+	for i := int64(len(values)); i < rows; i++ {
+		values = append(values, float64(i))
+	}
+	ib.AppendValues(values, nil)
 	return ib.NewFloat64Array()
 }
 
-func mockDate32(mem memory.Allocator) arrow.Array {
+func mockDate32(mem memory.Allocator, rows int64) arrow.Array {
 	ib := array.NewDate32Builder(mem)
 	defer ib.Release()
-	ib.AppendValues([]arrow.Date32{1, 2, 3, 4}, nil)
+	values := make([]arrow.Date32, rows)
+	for i := int64(0); i < rows; i++ {
+		values[i] = arrow.Date32(i + 1)
+	}
+	ib.AppendValues(values, nil)
 	return ib.NewDate32Array()
 }
 
-func mockDate64(mem memory.Allocator) arrow.Array {
+func mockDate64(mem memory.Allocator, rows int64) arrow.Array {
 	ib := array.NewDate64Builder(mem)
 	defer ib.Release()
-	ib.AppendValues([]arrow.Date64{1, 2, 3, 4}, nil)
+	values := make([]arrow.Date64, rows)
+	for i := int64(0); i < rows; i++ {
+		values[i] = arrow.Date64(i + 1)
+	}
+	ib.AppendValues(values, nil)
 	return ib.NewDate64Array()
 }
 
-func mockBinary(mem memory.Allocator) arrow.Array {
+func mockBinary(mem memory.Allocator, rows int64) arrow.Array {
 	ib := array.NewBinaryBuilder(mem, arrow.BinaryTypes.Binary)
 	defer ib.Release()
-	ib.AppendValues([][]byte{{1}, {2}, {3}, {4}}, nil)
+	values := make([][]byte, rows)
+	for i := int64(0); i < rows; i++ {
+		values[i] = []byte{byte(i)}
+	}
+	ib.AppendValues(values, nil)
 	return ib.NewBinaryArray()
 }
 
-func mockString(mem memory.Allocator) arrow.Array {
+func mockString(mem memory.Allocator, rows int64) arrow.Array {
 	ib := array.NewStringBuilder(mem)
 	defer ib.Release()
-	ib.AppendValues([]string{"a", "ab", "abc", "abcd"}, nil)
+	values := make([]string, rows)
+	for i := int64(0); i < rows; i++ {
+		values[i] = string(65 + int(i) % 26)
+	}
+	ib.AppendValues(values, nil)
 	return ib.NewStringArray()
 }
 
-func mockDayTimeInterval(mem memory.Allocator) arrow.Array {
+
+func mockDayTimeInterval(mem memory.Allocator, rows int64) arrow.Array {
 	ib := array.NewDayTimeIntervalBuilder(mem)
 	defer ib.Release()
-	ib.AppendValues([]arrow.DayTimeInterval{{Days: 1, Milliseconds: 2}, {Days: 3, Milliseconds: 4}, {Days: 5, Milliseconds: 6}, {Days: 7, Milliseconds: 8}}, nil)
+	values := make([]arrow.DayTimeInterval, rows)
+	for i := int64(0); i < rows; i++ {
+		values[i] = arrow.DayTimeInterval{Days: int32(i), Milliseconds: int32(i + 1)}
+	}
+	ib.AppendValues(values, nil)
 	return ib.NewDayTimeIntervalArray()
 }
 
-func mockDuration_s(mem memory.Allocator) arrow.Array {
+func mockDuration_s(mem memory.Allocator, rows int64) arrow.Array {
 	ib := array.NewDurationBuilder(mem, &arrow.DurationType{Unit: arrow.Second})
 	defer ib.Release()
-	ib.AppendValues([]arrow.Duration{1, 2, 3, 4}, nil)
+	values := make([]arrow.Duration, rows)
+	for i := int64(0); i < rows; i++ {
+		values[i] = arrow.Duration(i + 1)
+	}
+	ib.AppendValues(values, nil)
 	return ib.NewDurationArray()
 }
 
-func mockDuration_ms(mem memory.Allocator) arrow.Array {
+func mockDuration_ms(mem memory.Allocator, rows int64) arrow.Array {
 	ib := array.NewDurationBuilder(mem, &arrow.DurationType{Unit: arrow.Millisecond})
 	defer ib.Release()
-	ib.AppendValues([]arrow.Duration{1, 2, 3, 4}, nil)
+	values := make([]arrow.Duration, rows)
+	for i := int64(0); i < rows; i++ {
+		values[i] = arrow.Duration(i + 1)
+	}
+	ib.AppendValues(values, nil)
 	return ib.NewDurationArray()
 }
 
-func mockDuration_us(mem memory.Allocator) arrow.Array {
+func mockDuration_us(mem memory.Allocator, rows int64) arrow.Array {
 	ib := array.NewDurationBuilder(mem, &arrow.DurationType{Unit: arrow.Microsecond})
 	defer ib.Release()
-	ib.AppendValues([]arrow.Duration{1, 2, 3, 4}, nil)
+	values := make([]arrow.Duration, rows)
+	for i := int64(0); i < rows; i++ {
+		values[i] = arrow.Duration(i + 1)
+	}
+	ib.AppendValues(values, nil)
 	return ib.NewDurationArray()
 }
 
-func mockDuration_ns(mem memory.Allocator) arrow.Array {
+func mockDuration_ns(mem memory.Allocator, rows int64) arrow.Array {
 	ib := array.NewDurationBuilder(mem, &arrow.DurationType{Unit: arrow.Nanosecond})
 	defer ib.Release()
-	ib.AppendValues([]arrow.Duration{1, 2, 3, 4}, nil)
+	values := make([]arrow.Duration, rows)
+	for i := int64(0); i < rows; i++ {
+		values[i] = arrow.Duration(i + 1)
+	}
+	ib.AppendValues(values, nil)
 	return ib.NewDurationArray()
 }
 
-func mockFloat16(mem memory.Allocator) arrow.Array {
+func mockFloat16(mem memory.Allocator, rows int64) arrow.Array {
 	ib := array.NewFloat16Builder(mem)
 	defer ib.Release()
-	ib.AppendValues([]float16.Num{float16.New(1), float16.New(2), float16.New(3), float16.New(4)}, nil)
+	values := make([]float16.Num, rows)
+	for i := int64(0); i < rows; i++ {
+		values[i] = float16.New(float32(i + 1))
+	}
+	ib.AppendValues(values, nil)
 	return ib.NewFloat16Array()
 }
 
-func mockMonthInterval(mem memory.Allocator) arrow.Array {
+func mockMonthInterval(mem memory.Allocator, rows int64) arrow.Array {
 	ib := array.NewMonthIntervalBuilder(mem)
 	defer ib.Release()
-	ib.AppendValues([]arrow.MonthInterval{1, 2, 3, 4}, nil)
+	values := make([]arrow.MonthInterval, rows)
+	for i := int64(0); i < rows; i++ {
+		values[i] = arrow.MonthInterval(i + 1)
+	}
+	ib.AppendValues(values, nil)
 	return ib.NewMonthIntervalArray()
 }
 
-func mockTime32s(mem memory.Allocator) arrow.Array {
+func mockTime32s(mem memory.Allocator, rows int64) arrow.Array {
 	ib := array.NewTime32Builder(mem, &arrow.Time32Type{Unit: arrow.Second})
 	defer ib.Release()
-	ib.AppendValues([]arrow.Time32{1, 2, 3, 4}, nil)
+	values := make([]arrow.Time32, rows)
+	for i := int64(0); i < rows; i++ {
+		values[i] = arrow.Time32(i + 1)
+	}
+	ib.AppendValues(values, nil)
 	return ib.NewTime32Array()
 }
 
-func mockTime32ms(mem memory.Allocator) arrow.Array {
+func mockTime32ms(mem memory.Allocator, rows int64) arrow.Array {
 	ib := array.NewTime32Builder(mem, &arrow.Time32Type{Unit: arrow.Millisecond})
 	defer ib.Release()
-	ib.AppendValues([]arrow.Time32{1, 2, 3, 4}, nil)
+	values := make([]arrow.Time32, rows)
+	for i := int64(0); i < rows; i++ {
+		values[i] = arrow.Time32(i + 1)
+	}
+	ib.AppendValues(values, nil)
 	return ib.NewTime32Array()
 }
 
-func mockTime64us(mem memory.Allocator) arrow.Array {
+func mockTime64us(mem memory.Allocator, rows int64) arrow.Array {
 	ib := array.NewTime64Builder(mem, &arrow.Time64Type{Unit: arrow.Microsecond})
 	defer ib.Release()
-	ib.AppendValues([]arrow.Time64{1, 2, 3, 4}, nil)
+	values := make([]arrow.Time64, rows)
+	for i := int64(0); i < rows; i++ {
+		values[i] = arrow.Time64(i + 1)
+	}
+	ib.AppendValues(values, nil)
 	return ib.NewTime64Array()
 }
 
-func mockTime64ns(mem memory.Allocator) arrow.Array {
+func mockTime64ns(mem memory.Allocator, rows int64) arrow.Array {
 	ib := array.NewTime64Builder(mem, &arrow.Time64Type{Unit: arrow.Nanosecond})
 	defer ib.Release()
-	ib.AppendValues([]arrow.Time64{1, 2, 3, 4}, nil)
+	values := make([]arrow.Time64, rows)
+	for i := int64(0); i < rows; i++ {
+		values[i] = arrow.Time64(i + 1)
+	}
+	ib.AppendValues(values, nil)
 	return ib.NewTime64Array()
 }
 
-func tsFromStr(str string, unit arrow.TimeUnit) arrow.Timestamp {
-	ts, _ := arrow.TimestampFromString(str, unit)
-	return ts
-}
 
-func mockTimestamp_s(mem memory.Allocator) arrow.Array {
+func mockTimestamp_s(mem memory.Allocator, rows int64) arrow.Array {
 	ib := array.NewTimestampBuilder(mem, &arrow.TimestampType{Unit: arrow.Second, TimeZone: "UTC"})
 	defer ib.Release()
-	ib.AppendValues([]arrow.Timestamp{tsFromStr("1970-01-01 00:00:01Z", arrow.Second),
-		tsFromStr("1970-01-01 00:00:02Z", arrow.Second),
-		tsFromStr("1970-01-01 00:00:03Z", arrow.Second),
-		tsFromStr("1970-01-01 00:00:04Z", arrow.Second),
-	}, nil)
+	values := make([]arrow.Timestamp, rows)
+	for i := int64(0); i < rows; i++ {
+		values[i] = arrow.Timestamp(i)
+	}
+	ib.AppendValues(values, nil)
 	return ib.NewTimestampArray()
 }
 
-func mockTimestamp_ms(mem memory.Allocator) arrow.Array {
+func mockTimestamp_ms(mem memory.Allocator, rows int64) arrow.Array {
 	ib := array.NewTimestampBuilder(mem, &arrow.TimestampType{Unit: arrow.Millisecond, TimeZone: "UTC"})
 	defer ib.Release()
-	ib.AppendValues([]arrow.Timestamp{tsFromStr("1970-01-01 00:00:01Z", arrow.Millisecond),
-		tsFromStr("1970-01-01 00:00:02Z", arrow.Millisecond),
-		tsFromStr("1970-01-01 00:00:03Z", arrow.Millisecond),
-		tsFromStr("1970-01-01 00:00:04Z", arrow.Millisecond),
-	}, nil)
+	values := make([]arrow.Timestamp, rows)
+	for i := int64(0); i < rows; i++ {
+		values[i] = arrow.Timestamp(i)
+	}
+	ib.AppendValues(values, nil)
 	return ib.NewTimestampArray()
 }
 
-func mockTimestamp_us(mem memory.Allocator) arrow.Array {
+func mockTimestamp_us(mem memory.Allocator, rows int64) arrow.Array {
 	ib := array.NewTimestampBuilder(mem, &arrow.TimestampType{Unit: arrow.Microsecond, TimeZone: "UTC"})
 	defer ib.Release()
-	ib.AppendValues([]arrow.Timestamp{tsFromStr("1970-01-01 00:00:01Z", arrow.Microsecond),
-		tsFromStr("1970-01-01 00:00:02Z", arrow.Microsecond),
-		tsFromStr("1970-01-01 00:00:03Z", arrow.Microsecond),
-		tsFromStr("1970-01-01 00:00:04Z", arrow.Microsecond),
-	}, nil)
+	values := make([]arrow.Timestamp, rows)
+	for i := int64(0); i < rows; i++ {
+		values[i] = arrow.Timestamp(i)
+	}
+	ib.AppendValues(values, nil)
 	return ib.NewTimestampArray()
 }
 
-func mockTimestamp_ns(mem memory.Allocator) arrow.Array {
+func mockTimestamp_ns(mem memory.Allocator, rows int64) arrow.Array {
 	ib := array.NewTimestampBuilder(mem, &arrow.TimestampType{Unit: arrow.Nanosecond, TimeZone: "UTC"})
 	defer ib.Release()
-	ib.AppendValues([]arrow.Timestamp{tsFromStr("1970-01-01 00:00:01Z", arrow.Nanosecond),
-		tsFromStr("1970-01-01 00:00:02Z", arrow.Nanosecond),
-		tsFromStr("1970-01-01 00:00:03Z", arrow.Nanosecond),
-		tsFromStr("1970-01-01 00:00:04Z", arrow.Nanosecond),
-	}, nil)
+	values := make([]arrow.Timestamp, rows)
+	for i := int64(0); i < rows; i++ {
+		values[i] = arrow.Timestamp(i)
+	}
+	ib.AppendValues(values, nil)
 	return ib.NewTimestampArray()
 }

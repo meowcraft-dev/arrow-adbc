@@ -3,7 +3,7 @@ package mocks
 import (
 	"github.com/apache/arrow-adbc/go/adbc"
 	"github.com/apache/arrow-adbc/go/adbc/driver/internal/driverbase"
-	"github.com/apache/arrow/go/v16/arrow/memory"
+	"github.com/apache/arrow/go/v17/arrow/memory"
 	"golang.org/x/exp/maps"
 )
 

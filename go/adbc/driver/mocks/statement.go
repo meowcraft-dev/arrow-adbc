@@ -46,6 +46,9 @@ type statement struct {
 	ExtraBytesOptions  map[string][]byte
 	ExtraIntOptions    map[string]int64
 	ExtraDoubleOptions map[string]float64
+
+	paramBinding  arrow.Record
+	streamBinding array.RecordReader
 }
 
 // Close releases any relevant resources associated with this statement
@@ -53,6 +56,7 @@ type statement struct {
 //
 // A statement instance should not be used after Close is called.
 func (st *statement) Close() error {
+	st.clearParameters()
 	return nil
 }
 
@@ -255,11 +259,32 @@ func (st *statement) SetSqlQuery(query string) error {
 //
 // This invalidates any prior result sets on this statement.
 func (st *statement) ExecuteQuery(ctx context.Context) (array.RecordReader, int64, error) {
-	mockReader, err := NewMockReader(st.Query)
-	if err != nil {
-		return nil, -1, err
+	query := strings.ReplaceAll(st.Query, "\t", "")
+	query = strings.ReplaceAll(query, " ", "")
+	query = strings.ReplaceAll(query, "\n", "")
+	if query == "passthrough" {
+		if st.paramBinding != nil {
+			return &mockReader{
+				refCount: 1,
+				haveNext: true,
+				schema:   st.paramBinding.Schema(),
+				record:   st.paramBinding,
+			}, -1, nil
+		} else if st.streamBinding != nil {
+			return st.streamBinding, -1, nil
+		} else {
+			return nil, -1, adbc.Error{
+				Code: adbc.StatusInvalidArgument,
+				Msg:  fmt.Sprintf("query is set to `passthrough` yet without calling Bind or BindStream"),
+			}
+		}
+	} else {
+		mockReader, err := NewMockReader(query)
+		if err != nil {
+			return nil, -1, err
+		}
+		return mockReader, -1, nil
 	}
-	return mockReader, -1, nil
 }
 
 // ExecuteUpdate executes a statement that does not generate a result
@@ -301,6 +326,46 @@ func (st *statement) SetSubstraitPlan(plan []byte) error {
 	}
 }
 
+func (st *statement) clearParameters() {
+	if st.paramBinding != nil {
+		st.paramBinding.Release()
+		st.paramBinding = nil
+	}
+	if st.streamBinding != nil {
+		st.streamBinding.Release()
+		st.streamBinding = nil
+	}
+}
+
+// SetParameters takes a record batch to send as the parameter bindings when
+// executing. It should match the schema from ParameterSchema.
+//
+// This will call Retain on the record to ensure it doesn't get released out
+// from under the statement. Release will be called on a previous binding
+// record or reader if it existed, and will be called upon calling Close on the
+// PreparedStatement.
+func (st *statement) SetParameters(binding arrow.Record) {
+	st.clearParameters()
+	st.paramBinding = binding
+	if st.paramBinding != nil {
+		st.paramBinding.Retain()
+	}
+}
+
+// SetRecordReader takes a RecordReader to send as the parameter bindings when
+// executing. It should match the schema from ParameterSchema.
+//
+// This will call Retain on the reader to ensure it doesn't get released out
+// from under the statement. Release will be called on a previous binding
+// record or reader if it existed, and will be called upon calling Close on the
+// PreparedStatement.
+func (st *statement) SetRecordReader(binding array.RecordReader) {
+	st.clearParameters()
+	binding.Retain()
+	st.streamBinding = binding
+	st.streamBinding.Retain()
+}
+
 // Bind uses an arrow record batch to bind parameters to the query.
 //
 // This can be used for bulk inserts or for prepared statements.
@@ -308,10 +373,8 @@ func (st *statement) SetSubstraitPlan(plan []byte) error {
 // but it may not do this until the statement is closed or another
 // record is bound.
 func (st *statement) Bind(_ context.Context, values arrow.Record) error {
-	return adbc.Error{
-		Code: adbc.StatusNotImplemented,
-		Msg:  "Bind not yet implemented for mocks driver",
-	}
+	st.SetParameters(values)
+	return nil
 }
 
 // BindStream uses a record batch stream to bind parameters for this
@@ -320,10 +383,8 @@ func (st *statement) Bind(_ context.Context, values arrow.Record) error {
 // The driver will call Release on the record reader, but may not do this
 // until Close is called.
 func (st *statement) BindStream(_ context.Context, stream array.RecordReader) error {
-	return adbc.Error{
-		Code: adbc.StatusNotImplemented,
-		Msg:  "BindStream not yet implemented for mocks driver",
-	}
+	st.SetRecordReader(stream)
+	return nil
 }
 
 // GetParameterSchema returns an Arrow schema representation of

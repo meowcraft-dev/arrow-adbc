@@ -260,17 +260,10 @@ func parseQuery(query string, innerRows int) ([]arrow.Field, []arrow.Array, int,
 	return fields, fieldValues, rows, nil
 }
 
-func parseJsonQuery(query string) ([]arrow.Field, []arrow.Array, int, error) {
-
-}
-
-// Create a mockReader according to the query
+// NewMockReader Creates a mockReader according to the query.
 // The query should be a list of types separated by commas
 // The returned mockReader will have the types in the same order
 func NewMockReader(query string) (*mockReader, error) {
-	query = strings.ReplaceAll(query, "\t", "")
-	query = strings.ReplaceAll(query, " ", "")
-	query = strings.ReplaceAll(query, "\n", "")
 	fields, fieldValues, rows, err := parseQuery(query, 1)
 	if err != nil {
 		return nil, err

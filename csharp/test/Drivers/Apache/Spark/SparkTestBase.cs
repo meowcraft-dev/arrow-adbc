@@ -17,6 +17,7 @@
 
 using System;
 using System.Collections.Generic;
+using System.Threading.Tasks;
 using Apache.Arrow.Adbc.Drivers.Apache.Spark;
 using Xunit.Abstractions;
 
@@ -24,7 +25,7 @@ namespace Apache.Arrow.Adbc.Tests.Drivers.Apache.Spark
 {
     public class SparkTestBase : TestBase<SparkTestConfiguration>
     {
-        public SparkTestBase(ITestOutputHelper outputHelper) : base(outputHelper) { }
+        public SparkTestBase(ITestOutputHelper? outputHelper) : base(outputHelper) { }
 
         protected override string TestConfigVariable => "SPARK_TEST_CONFIG_FILE";
 
@@ -32,13 +33,15 @@ namespace Apache.Arrow.Adbc.Tests.Drivers.Apache.Spark
 
         protected override AdbcDriver NewDriver => new SparkDriver();
 
-        protected override TemporaryTable NewTemporaryTable(AdbcStatement statement, string columns) {
+        protected override async ValueTask<TemporaryTable> NewTemporaryTableAsync(AdbcStatement statement, string columns) {
             string tableName = NewTableName();
             // Note: Databricks/Spark doesn't support TEMPORARY table.
             string sqlUpdate = string.Format("CREATE TABLE {0} ({1})", tableName, columns);
-            OutputHelper.WriteLine(sqlUpdate);
-            return TemporaryTable.NewTemporaryTable(statement, tableName, sqlUpdate);
+            OutputHelper?.WriteLine(sqlUpdate);
+            return await TemporaryTable.NewTemporaryTableAsync(statement, tableName, sqlUpdate);
         }
+
+        protected override string Delimiter => "`";
 
         protected override Dictionary<string, string> GetDriverParameters(SparkTestConfiguration testConfiguration)
         {

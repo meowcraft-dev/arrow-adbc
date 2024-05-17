@@ -30,7 +30,7 @@ namespace Apache.Arrow.Adbc.C
         private static unsafe readonly NativeDelegate<ErrorRelease> s_releaseError = new NativeDelegate<ErrorRelease>(ReleaseError);
 
 #if NET5_0_OR_GREATER
-        private static unsafe delegate* unmanaged<CAdbcError*, void> ReleaseErrorPtr => (delegate* unmanaged<CAdbcError*, void>)s_releaseError.Pointer;
+        internal static unsafe delegate* unmanaged<CAdbcError*, void> ReleaseErrorPtr => (delegate* unmanaged<CAdbcError*, void>)s_releaseError.Pointer;
         private static unsafe delegate* unmanaged<CAdbcDriver*, CAdbcError*, AdbcStatusCode> ReleaseDriverPtr => &ReleaseDriver;
         private static unsafe delegate* unmanaged<CAdbcPartitions*, void> ReleasePartitionsPtr => &ReleasePartitions;
 
@@ -53,6 +53,7 @@ namespace Apache.Arrow.Adbc.C
         private static unsafe delegate* unmanaged<CAdbcStatement*, CArrowArrayStream*, CAdbcError*, AdbcStatusCode> StatementBindStreamPtr => &BindStreamStatement;
         private static unsafe delegate* unmanaged<CAdbcStatement*, CArrowArrayStream*, long*, CAdbcError*, AdbcStatusCode> StatementExecuteQueryPtr => &ExecuteStatementQuery;
         private static unsafe delegate* unmanaged<CAdbcStatement*, CArrowSchema*, CAdbcPartitions*, long*, CAdbcError*, AdbcStatusCode> StatementExecutePartitionsPtr => &ExecuteStatementPartitions;
+        private static unsafe delegate* unmanaged<CAdbcStatement*, CArrowSchema*, CAdbcError*, AdbcStatusCode> StatementExecuteSchemaPtr => &ExecuteStatementSchema;
         private static unsafe delegate* unmanaged<CAdbcConnection*, CAdbcStatement*, CAdbcError*, AdbcStatusCode> StatementNewPtr => &NewStatement;
         private static unsafe delegate* unmanaged<CAdbcStatement*, CAdbcError*, AdbcStatusCode> StatementReleasePtr => &ReleaseStatement;
         private static unsafe delegate* unmanaged<CAdbcStatement*, CAdbcError*, AdbcStatusCode> StatementPreparePtr => &PrepareStatement;
@@ -60,7 +61,7 @@ namespace Apache.Arrow.Adbc.C
         private static unsafe delegate* unmanaged<CAdbcStatement*, byte*, int, CAdbcError*, AdbcStatusCode> StatementSetSubstraitPlanPtr => &SetStatementSubstraitPlan;
         private static unsafe delegate* unmanaged<CAdbcStatement*, CArrowSchema*, CAdbcError*, AdbcStatusCode> StatementGetParameterSchemaPtr => &GetStatementParameterSchema;
 #else
-        private static unsafe IntPtr ReleaseErrorPtr => s_releaseError.Pointer;
+        internal static unsafe IntPtr ReleaseErrorPtr => s_releaseError.Pointer;
         private static unsafe IntPtr ReleaseDriverPtr = NativeDelegate<DriverRelease>.AsNativePointer(ReleaseDriver);
         private static unsafe IntPtr ReleasePartitionsPtr = NativeDelegate<PartitionsRelease>.AsNativePointer(ReleasePartitions);
 
@@ -83,9 +84,10 @@ namespace Apache.Arrow.Adbc.C
         private static unsafe IntPtr StatementBindStreamPtr = NativeDelegate<StatementBindStream>.AsNativePointer(BindStreamStatement);
         private static unsafe IntPtr StatementExecuteQueryPtr = NativeDelegate<StatementExecuteQuery>.AsNativePointer(ExecuteStatementQuery);
         private static unsafe IntPtr StatementExecutePartitionsPtr = NativeDelegate<StatementExecutePartitions>.AsNativePointer(ExecuteStatementPartitions);
+        private static unsafe IntPtr StatementExecuteSchemaPtr = NativeDelegate<StatementExecuteSchema>.AsNativePointer(ExecuteStatementSchema);
         private static unsafe IntPtr StatementNewPtr = NativeDelegate<StatementNew>.AsNativePointer(NewStatement);
-        private static unsafe IntPtr StatementReleasePtr = NativeDelegate<StatementFn>.AsNativePointer(ReleaseStatement);
-        private static unsafe IntPtr StatementPreparePtr = NativeDelegate<StatementFn>.AsNativePointer(PrepareStatement);
+        private static unsafe IntPtr StatementReleasePtr = NativeDelegate<StatementRelease>.AsNativePointer(ReleaseStatement);
+        private static unsafe IntPtr StatementPreparePtr = NativeDelegate<StatementPrepare>.AsNativePointer(PrepareStatement);
         private static unsafe IntPtr StatementSetSqlQueryPtr = NativeDelegate<StatementSetSqlQuery>.AsNativePointer(SetStatementSqlQuery);
         private static unsafe IntPtr StatementSetSubstraitPlanPtr = NativeDelegate<StatementSetSubstraitPlan>.AsNativePointer(SetStatementSubstraitPlan);
         private static unsafe IntPtr StatementGetParameterSchemaPtr = NativeDelegate<StatementGetParameterSchema>.AsNativePointer(GetStatementParameterSchema);
@@ -93,6 +95,12 @@ namespace Apache.Arrow.Adbc.C
 
         public unsafe static AdbcStatusCode AdbcDriverInit(int version, CAdbcDriver* nativeDriver, CAdbcError* error, AdbcDriver driver)
         {
+            if (version != AdbcVersion.Version_1_0_0)
+            {
+                // TODO: implement support for AdbcVersion.Version_1_1_0
+                return AdbcStatusCode.InternalError;
+            }
+
             DriverStub stub = new DriverStub(driver);
             GCHandle handle = GCHandle.Alloc(stub);
             nativeDriver->private_data = (void*)GCHandle.ToIntPtr(handle);
@@ -129,7 +137,7 @@ namespace Apache.Arrow.Adbc.C
             return 0;
         }
 
-        private unsafe static void ReleaseError(CAdbcError* error)
+        internal unsafe static void ReleaseError(CAdbcError* error)
         {
             if (error != null && ((IntPtr)error->message) != IntPtr.Zero)
             {
@@ -640,6 +648,26 @@ namespace Apache.Arrow.Adbc.C
 #if NET5_0_OR_GREATER
         [UnmanagedCallersOnly]
 #endif
+        private unsafe static AdbcStatusCode ExecuteStatementSchema(CAdbcStatement* nativeStatement, CArrowSchema* schema, CAdbcError* error)
+        {
+            try
+            {
+                GCHandle gch = GCHandle.FromIntPtr((IntPtr)nativeStatement->private_data);
+                AdbcStatement stub = (AdbcStatement)gch.Target!;
+                var result = stub.ExecuteSchema();
+
+                CArrowSchemaExporter.ExportSchema(result, schema);
+                return AdbcStatusCode.Success;
+            }
+            catch (Exception e)
+            {
+                return SetError(error, e);
+            }
+        }
+
+#if NET5_0_OR_GREATER
+        [UnmanagedCallersOnly]
+#endif
         private unsafe static AdbcStatusCode NewStatement(CAdbcConnection* nativeConnection, CAdbcStatement* nativeStatement, CAdbcError* error)
         {
             try
@@ -824,22 +852,20 @@ namespace Apache.Arrow.Adbc.C
                 }
                 else
                 {
-                    // TODO: how best to normalize this?
-                    if (StringComparer.OrdinalIgnoreCase.Equals(stringName, AdbcOptions.Autocommit))
+                    switch (stringName)
                     {
-                        connection.AutoCommit = AdbcOptions.GetEnabled(stringValue);
-                    }
-                    else if (StringComparer.OrdinalIgnoreCase.Equals(stringName, AdbcOptions.IsolationLevel))
-                    {
-                        connection.IsolationLevel = AdbcOptions.GetIsolationLevel(stringValue);
-                    }
-                    else if (StringComparer.OrdinalIgnoreCase.Equals(stringName, AdbcOptions.ReadOnly))
-                    {
-                        connection.ReadOnly = AdbcOptions.GetEnabled(stringValue);
-                    }
-                    else
-                    {
-                        connection.SetOption(stringName, stringValue);
+                        case AdbcOptions.Connection.Autocommit:
+                            connection.AutoCommit = AdbcOptions.GetEnabled(stringValue);
+                            break;
+                        case AdbcOptions.Connection.IsolationLevel:
+                            connection.IsolationLevel = AdbcOptions.GetIsolationLevel(stringValue);
+                            break;
+                        case AdbcOptions.Connection.ReadOnly:
+                            connection.ReadOnly = AdbcOptions.GetEnabled(stringValue);
+                            break;
+                        default:
+                            connection.SetOption(stringName, stringValue);
+                            break;
                     }
                 }
             }

@@ -15,29 +15,11 @@
  * limitations under the License.
  */
 
-using System;
-using System.Collections.Generic;
-using System.Linq;
-
-#if NET5_0_OR_GREATER
-using System.Runtime.InteropServices;
-#endif
-
-namespace Apache.Arrow.Adbc.Extensions
+namespace Apache.Arrow.Adbc
 {
-    internal static class CollectionExtensions
+    public static class AdbcVersion
     {
-        public static Span<T> AsSpan<T>(this IReadOnlyList<T> list)
-        {
-            T[]? array = list as T[];
-            if (array != null) { return (Span<T>)array; }
-
-#if NET5_0_OR_GREATER
-            List<T>? concreteList = list as List<T>;
-            if (concreteList != null) { return CollectionsMarshal.AsSpan(concreteList); }
-#endif
-
-            return list.ToArray().AsSpan();
-        }
+        public const int Version_1_0_0 = 1000000;
+        public const int Version_1_1_0 = 1001000;
     }
 }

@@ -15,29 +15,31 @@
  * limitations under the License.
  */
 
-using System;
-using System.Collections.Generic;
-using System.Linq;
-
-#if NET5_0_OR_GREATER
 using System.Runtime.InteropServices;
-#endif
 
-namespace Apache.Arrow.Adbc.Extensions
+namespace Apache.Arrow.Adbc.C
 {
-    internal static class CollectionExtensions
+    /// <summary>
+    /// Extra key-value metadata for an error.
+    ///
+    /// Added in ADBC 1.1.0.
+    /// </summary>
+    [StructLayout(LayoutKind.Sequential)]
+    public unsafe struct CAdbcErrorDetail
     {
-        public static Span<T> AsSpan<T>(this IReadOnlyList<T> list)
-        {
-            T[]? array = list as T[];
-            if (array != null) { return (Span<T>)array; }
+        /// <summary>
+        /// The metadata key.
+        /// </summary>
+        public byte* key;
 
-#if NET5_0_OR_GREATER
-            List<T>? concreteList = list as List<T>;
-            if (concreteList != null) { return CollectionsMarshal.AsSpan(concreteList); }
-#endif
+        /// <summary>
+        /// The metadata value.
+        /// </summary>
+        public byte* value;
 
-            return list.ToArray().AsSpan();
-        }
+        /// <summary>
+        /// The metadata value length.
+        /// </summary>
+        public nint length;
     }
 }

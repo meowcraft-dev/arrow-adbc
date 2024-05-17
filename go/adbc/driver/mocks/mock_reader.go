@@ -31,10 +31,11 @@ import (
 )
 
 type mockReader struct {
-	refCount int64
-	haveNext bool
-	record   arrow.Record
-	schema   *arrow.Schema
+	refCount   int64
+	rows       int64
+	currentRow int64
+	record     arrow.Record
+	schema     *arrow.Schema
 }
 
 type typeBuilder struct {
@@ -272,10 +273,11 @@ func NewMockReader(query string) (*mockReader, error) {
 	rec := array.NewRecord(schema, fieldValues, int64(rows))
 	rec.Retain()
 	return &mockReader{
-		refCount: 1,
-		haveNext: true,
-		schema:   schema,
-		record:   rec,
+		refCount:   1,
+		rows:       1,
+		currentRow: 0,
+		schema:     schema,
+		record:     rec,
 	}, nil
 }
 
@@ -304,9 +306,7 @@ func (r *mockReader) Err() error {
 }
 
 func (r *mockReader) Next() bool {
-	if r.haveNext {
-		r.haveNext = false
-		return true
-	}
-	return false
+	hasNext := r.currentRow < r.rows
+	r.currentRow = r.currentRow + 1
+	return hasNext
 }

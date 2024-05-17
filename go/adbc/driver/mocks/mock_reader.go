@@ -47,119 +47,119 @@ var (
 	listRegex      = regexp.MustCompile(`^list<(?P<len>\d*):?(?P<typename>.+)>`)
 	structRegex    = regexp.MustCompile(`^struct\<(?P<struct>.+)\>`)
 	availableTypes = map[string]typeBuilder{
-		"int8": typeBuilder{
+		"int8": {
 			field:   arrow.Field{Name: "int8", Type: arrow.PrimitiveTypes.Int8},
 			builder: mockInt8,
 		},
-		"int16": typeBuilder{
+		"int16": {
 			field:   arrow.Field{Name: "int16", Type: arrow.PrimitiveTypes.Int16},
 			builder: mockInt16,
 		},
-		"int32": typeBuilder{
+		"int32": {
 			field:   arrow.Field{Name: "int32", Type: arrow.PrimitiveTypes.Int32},
 			builder: mockInt32,
 		},
-		"int64": typeBuilder{
+		"int64": {
 			field:   arrow.Field{Name: "int64", Type: arrow.PrimitiveTypes.Int64},
 			builder: mockInt64,
 		},
-		"uint8": typeBuilder{
+		"uint8": {
 			field:   arrow.Field{Name: "uint8", Type: arrow.PrimitiveTypes.Uint8},
 			builder: mockUint8,
 		},
-		"uint16": typeBuilder{
+		"uint16": {
 			field:   arrow.Field{Name: "uint16", Type: arrow.PrimitiveTypes.Uint16},
 			builder: mockUint16,
 		},
-		"uint32": typeBuilder{
+		"uint32": {
 			field:   arrow.Field{Name: "uint32", Type: arrow.PrimitiveTypes.Uint32},
 			builder: mockUint32,
 		},
-		"uint64": typeBuilder{
+		"uint64": {
 			field:   arrow.Field{Name: "uint64", Type: arrow.PrimitiveTypes.Uint64},
 			builder: mockUint64,
 		},
-		"float32": typeBuilder{
+		"float32": {
 			field:   arrow.Field{Name: "float32", Type: arrow.PrimitiveTypes.Float32},
 			builder: mockFloat32,
 		},
-		"float64": typeBuilder{
+		"float64": {
 			field:   arrow.Field{Name: "float64", Type: arrow.PrimitiveTypes.Float64},
 			builder: mockFloat64,
 		},
-		"date32": typeBuilder{
+		"date32": {
 			field:   arrow.Field{Name: "date32", Type: arrow.PrimitiveTypes.Date32},
 			builder: mockDate32,
 		},
-		"date64": typeBuilder{
+		"date64": {
 			field:   arrow.Field{Name: "date64", Type: arrow.PrimitiveTypes.Date64},
 			builder: mockDate64,
 		},
-		"binary": typeBuilder{
+		"binary": {
 			field:   arrow.Field{Name: "binary", Type: arrow.BinaryTypes.Binary},
 			builder: mockBinary,
 		},
-		"string": typeBuilder{
+		"string": {
 			field:   arrow.Field{Name: "string", Type: arrow.BinaryTypes.String},
 			builder: mockString,
 		},
-		"daytimeinterval": typeBuilder{
+		"daytimeinterval": {
 			field:   arrow.Field{Name: "daytimeinterval", Type: arrow.FixedWidthTypes.DayTimeInterval},
 			builder: mockDayTimeInterval,
 		},
-		"duration_s": typeBuilder{
+		"duration_s": {
 			field:   arrow.Field{Name: "duration_s", Type: arrow.FixedWidthTypes.Duration_s},
 			builder: mockDuration_s,
 		},
-		"duration_ms": typeBuilder{
+		"duration_ms": {
 			field:   arrow.Field{Name: "duration_ms", Type: arrow.FixedWidthTypes.Duration_ms},
 			builder: mockDuration_ms,
 		},
-		"duration_us": typeBuilder{
+		"duration_us": {
 			field:   arrow.Field{Name: "duration_us", Type: arrow.FixedWidthTypes.Duration_us},
 			builder: mockDuration_us,
 		},
-		"duration_ns": typeBuilder{
+		"duration_ns": {
 			field:   arrow.Field{Name: "duration_ns", Type: arrow.FixedWidthTypes.Duration_ns},
 			builder: mockDuration_ns,
 		},
-		"float16": typeBuilder{
+		"float16": {
 			field:   arrow.Field{Name: "float16", Type: arrow.FixedWidthTypes.Float16},
 			builder: mockFloat16,
 		},
-		"monthInterval": typeBuilder{
+		"monthInterval": {
 			field:   arrow.Field{Name: "monthInterval", Type: arrow.FixedWidthTypes.MonthInterval},
 			builder: mockMonthInterval,
 		},
-		"time32s": typeBuilder{
+		"time32s": {
 			field:   arrow.Field{Name: "time32s", Type: arrow.FixedWidthTypes.Time32s},
 			builder: mockTime32s,
 		},
-		"time32ms": typeBuilder{
+		"time32ms": {
 			field:   arrow.Field{Name: "time32ms", Type: arrow.FixedWidthTypes.Time32ms},
 			builder: mockTime32ms,
 		},
-		"time64us": typeBuilder{
+		"time64us": {
 			field:   arrow.Field{Name: "time64us", Type: arrow.FixedWidthTypes.Time64us},
 			builder: mockTime64us,
 		},
-		"time64ns": typeBuilder{
+		"time64ns": {
 			field:   arrow.Field{Name: "time64ns", Type: arrow.FixedWidthTypes.Time64ns},
 			builder: mockTime64ns,
 		},
-		"timestamp_s": typeBuilder{
+		"timestamp_s": {
 			field:   arrow.Field{Name: "timestamp_s", Type: arrow.FixedWidthTypes.Timestamp_s},
 			builder: mockTimestamp_s,
 		},
-		"timestamp_ms": typeBuilder{
+		"timestamp_ms": {
 			field:   arrow.Field{Name: "timestamp_ms", Type: arrow.FixedWidthTypes.Timestamp_ms},
 			builder: mockTimestamp_ms,
 		},
-		"timestamp_us": typeBuilder{
+		"timestamp_us": {
 			field:   arrow.Field{Name: "timestamp_us", Type: arrow.FixedWidthTypes.Timestamp_us},
 			builder: mockTimestamp_us,
 		},
-		"timestamp_ns": typeBuilder{
+		"timestamp_ns": {
 			field:   arrow.Field{Name: "timestamp_ns", Type: arrow.FixedWidthTypes.Timestamp_ns},
 			builder: mockTimestamp_ns,
 		},

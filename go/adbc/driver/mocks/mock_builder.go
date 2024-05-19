@@ -88,15 +88,15 @@ func mockStruct(mem memory.Allocator, rows int, structType *arrow.StructType) ar
 			fillValue(fieldBuilder.(*array.DurationBuilder).AppendValues, rows, 0)
 		case arrow.FixedWidthTypes.Duration_ns:
 			fillValue(fieldBuilder.(*array.DurationBuilder).AppendValues, rows, 0)
-		case arrow.FixedWidthTypes.MonthInterval:
-			fillValue(fieldBuilder.(*array.MonthIntervalBuilder).AppendValues, rows, 0)
 
+		case arrow.FixedWidthTypes.MonthInterval:
+			fillIntervalMonthValue(fieldBuilder.(*array.MonthIntervalBuilder).AppendValues, rows, 0)
+		case arrow.FixedWidthTypes.DayTimeInterval:
+			fillIntervalDayTimeValue(fieldBuilder.(*array.DayTimeIntervalBuilder).AppendValues, rows, 0)
+		case arrow.FixedWidthTypes.MonthDayNanoInterval:
+			fillIntervalMonthDayNanoValue(fieldBuilder.(*array.MonthDayNanoIntervalBuilder).AppendValues, rows, 0)
 		case arrow.FixedWidthTypes.Boolean:
 			fillBoolValue(fieldBuilder.(*array.BooleanBuilder).AppendValues, rows)
-		case arrow.FixedWidthTypes.DayTimeInterval:
-			fillDayTimeIntervalValue(fieldBuilder.(*array.DayTimeIntervalBuilder).AppendValues, rows, 0)
-		case arrow.FixedWidthTypes.MonthDayNanoInterval:
-			fillMonthDayNanoIntervalValue(fieldBuilder.(*array.MonthDayNanoIntervalBuilder).AppendValues, rows, 0)
 		case arrow.FixedWidthTypes.Float16:
 			fillFloat16Value(fieldBuilder.(*array.Float16Builder).AppendValues, rows, 0)
 		case arrow.BinaryTypes.Binary:
@@ -162,15 +162,15 @@ func mockArray(mem memory.Allocator, rows int, elemType arrow.DataType) arrow.Ar
 		fillValue(listBuilder.ValueBuilder().(*array.DurationBuilder).AppendValues, rows, 0)
 	case arrow.FixedWidthTypes.Duration_ns:
 		fillValue(listBuilder.ValueBuilder().(*array.DurationBuilder).AppendValues, rows, 0)
-	case arrow.FixedWidthTypes.MonthInterval:
-		fillValue(listBuilder.ValueBuilder().(*array.MonthIntervalBuilder).AppendValues, rows, 0)
 
+	case arrow.FixedWidthTypes.MonthInterval:
+		fillIntervalMonthValue(listBuilder.ValueBuilder().(*array.MonthIntervalBuilder).AppendValues, rows, 0)
+	case arrow.FixedWidthTypes.DayTimeInterval:
+		fillIntervalDayTimeValue(listBuilder.ValueBuilder().(*array.DayTimeIntervalBuilder).AppendValues, rows, 0)
+	case arrow.FixedWidthTypes.MonthDayNanoInterval:
+		fillIntervalMonthDayNanoValue(listBuilder.ValueBuilder().(*array.MonthDayNanoIntervalBuilder).AppendValues, rows, 0)
 	case arrow.FixedWidthTypes.Boolean:
 		fillBoolValue(listBuilder.ValueBuilder().(*array.BooleanBuilder).AppendValues, rows)
-	case arrow.FixedWidthTypes.DayTimeInterval:
-		fillDayTimeIntervalValue(listBuilder.ValueBuilder().(*array.DayTimeIntervalBuilder).AppendValues, rows, 0)
-	case arrow.FixedWidthTypes.MonthDayNanoInterval:
-		fillMonthDayNanoIntervalValue(listBuilder.ValueBuilder().(*array.MonthDayNanoIntervalBuilder).AppendValues, rows, 0)
 	case arrow.FixedWidthTypes.Float16:
 		fillFloat16Value(listBuilder.ValueBuilder().(*array.Float16Builder).AppendValues, rows, 0)
 	case arrow.BinaryTypes.Binary:
@@ -190,12 +190,16 @@ func fillBoolValue(append func(value []bool, valid []bool), rows int) {
 	append(getBoolSlice(rows), nil)
 }
 
-func fillDayTimeIntervalValue(append func(value []arrow.DayTimeInterval, valid []bool), rows int, start int) {
-	append(getDayTimeIntervalSlice(rows, start), nil)
+func fillIntervalMonthValue(append func(value []arrow.MonthInterval, valid []bool), rows int, start int) {
+	append(getIntervalMonthSlice(rows, start), nil)
 }
 
-func fillMonthDayNanoIntervalValue(append func(value []arrow.MonthDayNanoInterval, valid []bool), rows int, start int) {
-	append(getMonthDayNanoIntervalSlice(rows, start), nil)
+func fillIntervalDayTimeValue(append func(value []arrow.DayTimeInterval, valid []bool), rows int, start int) {
+	append(getIntervalDayTimeSlice(rows, start), nil)
+}
+
+func fillIntervalMonthDayNanoValue(append func(value []arrow.MonthDayNanoInterval, valid []bool), rows int, start int) {
+	append(getIntervalMonthDayNanoSlice(rows, start), nil)
 }
 
 func fillFloat16Value(append func(value []float16.Num, valid []bool), rows int, start int) {
@@ -203,7 +207,8 @@ func fillFloat16Value(append func(value []float16.Num, valid []bool), rows int, 
 }
 
 func fillBinaryValue(append func(value [][]byte, valid []bool), rows int, start int) {
-	append(getBinarySlice(rows, start), nil)
+	value, valid := getBinarySlice(rows, start)
+	append(value, valid)
 }
 
 func fillStringValue(append func(value []string, valid []bool), rows int, start int) {
@@ -226,7 +231,15 @@ func getBoolSlice(rows int) []bool {
 	return slice
 }
 
-func getDayTimeIntervalSlice(rows int, start int) []arrow.DayTimeInterval {
+func getIntervalMonthSlice(rows int, start int) []arrow.MonthInterval {
+	slice := make([]arrow.MonthInterval, rows)
+	for i := start; i < start+rows; i++ {
+		slice[i] = arrow.MonthInterval(i)
+	}
+	return slice
+}
+
+func getIntervalDayTimeSlice(rows int, start int) []arrow.DayTimeInterval {
 	slice := make([]arrow.DayTimeInterval, rows)
 	for i := start; i < start+rows; i++ {
 		slice[i] = arrow.DayTimeInterval{Days: int32(i), Milliseconds: int32(i)}
@@ -234,7 +247,7 @@ func getDayTimeIntervalSlice(rows int, start int) []arrow.DayTimeInterval {
 	return slice
 }
 
-func getMonthDayNanoIntervalSlice(rows int, start int) []arrow.MonthDayNanoInterval {
+func getIntervalMonthDayNanoSlice(rows int, start int) []arrow.MonthDayNanoInterval {
 	slice := make([]arrow.MonthDayNanoInterval, rows)
 	for i := start; i < start+rows; i++ {
 		slice[i] = arrow.MonthDayNanoInterval{Months: int32(i), Days: int32(i), Nanoseconds: int64(i)}
@@ -250,12 +263,18 @@ func getFloat16Slice(rows int, start float32) []float16.Num {
 	return slice
 }
 
-func getBinarySlice(rows int, start int) [][]byte {
+func getBinarySlice(rows int, start int) ([][]byte, []bool) {
 	slice := make([][]byte, rows)
+	valid := make([]bool, rows)
+	j := 0
 	for i := 0; i < rows; i++ {
-		slice[i] = []byte{byte(i + start), byte(i + start + 1), byte(i + start + 2), byte(i + start + 3)}
+		valid[i] = i%2 == 0
+		if valid[i] {
+			slice[i] = []byte{byte(j + start), byte(j + start + 1), byte(j + start + 2), byte(j + start + 3)}
+			j++
+		}
 	}
-	return slice
+	return slice, valid
 }
 
 var stringData = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"
@@ -374,18 +393,31 @@ func mockBinary(mem memory.Allocator, rows int) arrow.Array {
 	return ib.NewBinaryArray()
 }
 
+func mockFixedSizeBinary(mem memory.Allocator, rows int) arrow.Array {
+	nbytes := 5
+	ib := array.NewFixedSizeBinaryBuilder(mem, &arrow.FixedSizeBinaryType{ByteWidth: nbytes})
+	defer ib.Release()
+	start := 0
+	slice := make([][]byte, rows)
+	valid := make([]bool, rows)
+	j := 0
+	for i := 0; i < rows; i++ {
+		valid[i] = i%2 == 0
+		if valid[i] {
+			pos := (j + start) % len(stringData)
+			slice[i] = []byte(stringData[pos : pos+nbytes])
+			j += 1
+		}
+	}
+	ib.AppendValues(slice, valid)
+	return ib.NewFixedSizeBinaryArray()
+}
+
 func mockString(mem memory.Allocator, rows int) arrow.Array {
 	ib := array.NewStringBuilder(mem)
 	defer ib.Release()
 	fillStringValue(ib.AppendValues, rows, 0)
 	return ib.NewStringArray()
-}
-
-func mockDayTimeInterval(mem memory.Allocator, rows int) arrow.Array {
-	ib := array.NewDayTimeIntervalBuilder(mem)
-	defer ib.Release()
-	fillDayTimeIntervalValue(ib.AppendValues, rows, 0)
-	return ib.NewDayTimeIntervalArray()
 }
 
 func mockDuration_s(mem memory.Allocator, rows int) arrow.Array {
@@ -432,6 +464,20 @@ func mockMonthInterval(mem memory.Allocator, rows int) arrow.Array {
 	defer ib.Release()
 	fillValue(ib.AppendValues, rows, 0)
 	return ib.NewMonthIntervalArray()
+}
+
+func mockDayTimeInterval(mem memory.Allocator, rows int) arrow.Array {
+	ib := array.NewDayTimeIntervalBuilder(mem)
+	defer ib.Release()
+	fillIntervalDayTimeValue(ib.AppendValues, rows, 0)
+	return ib.NewDayTimeIntervalArray()
+}
+
+func mockMonthDayNanoInterval(mem memory.Allocator, rows int) arrow.Array {
+	ib := array.NewMonthDayNanoIntervalBuilder(mem)
+	defer ib.Release()
+	fillIntervalMonthDayNanoValue(ib.AppendValues, rows, 0)
+	return ib.NewMonthDayNanoIntervalArray()
 }
 
 func mockTime32s(mem memory.Allocator, rows int) arrow.Array {

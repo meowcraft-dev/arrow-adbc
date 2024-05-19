@@ -264,13 +264,17 @@ func (st *statement) ExecuteQuery(ctx context.Context) (array.RecordReader, int6
 	query = strings.ReplaceAll(query, "\n", "")
 	if query == "passthrough" {
 		if st.paramBinding != nil {
+			rows := st.paramBinding.NumRows()
+			if st.paramBinding.NumCols() > 0 {
+				rows = int64(st.paramBinding.Column(0).Len())
+			}
 			return &mockReader{
 				refCount:   1,
-				rows:       st.paramBinding.NumRows(),
+				rows:       rows,
 				currentRow: 0,
 				schema:     st.paramBinding.Schema(),
 				record:     st.paramBinding,
-			}, -1, nil
+			}, rows, nil
 		} else if st.streamBinding != nil {
 			return st.streamBinding, -1, nil
 		} else {

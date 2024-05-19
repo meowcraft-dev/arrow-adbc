@@ -104,9 +104,9 @@ var (
 			field:   arrow.Field{Name: "string", Type: arrow.BinaryTypes.String},
 			builder: mockString,
 		},
-		"daytimeinterval": {
-			field:   arrow.Field{Name: "daytimeinterval", Type: arrow.FixedWidthTypes.DayTimeInterval},
-			builder: mockDayTimeInterval,
+		"fixed_size_binary": {
+			field:   arrow.Field{Name: "fixed_size_binary", Type: &arrow.FixedSizeBinaryType{ByteWidth: 5}},
+			builder: mockFixedSizeBinary,
 		},
 		"duration_s": {
 			field:   arrow.Field{Name: "duration_s", Type: arrow.FixedWidthTypes.Duration_s},
@@ -128,9 +128,17 @@ var (
 			field:   arrow.Field{Name: "float16", Type: arrow.FixedWidthTypes.Float16},
 			builder: mockFloat16,
 		},
-		"monthInterval": {
-			field:   arrow.Field{Name: "monthInterval", Type: arrow.FixedWidthTypes.MonthInterval},
+		"interval_month": {
+			field:   arrow.Field{Name: "interval_month", Type: arrow.FixedWidthTypes.MonthInterval},
 			builder: mockMonthInterval,
+		},
+		"interval_daytime": {
+			field:   arrow.Field{Name: "interval_daytime", Type: arrow.FixedWidthTypes.DayTimeInterval},
+			builder: mockDayTimeInterval,
+		},
+		"interval_monthdaynano": {
+			field:   arrow.Field{Name: "interval_monthdaynano", Type: arrow.FixedWidthTypes.MonthInterval},
+			builder: mockMonthDayNanoInterval,
 		},
 		"time32s": {
 			field:   arrow.Field{Name: "time32s", Type: arrow.FixedWidthTypes.Time32s},
@@ -307,6 +315,6 @@ func (r *mockReader) Err() error {
 
 func (r *mockReader) Next() bool {
 	hasNext := r.currentRow < r.rows
-	r.currentRow = r.currentRow + 1
+	r.currentRow += 1
 	return hasNext
 }

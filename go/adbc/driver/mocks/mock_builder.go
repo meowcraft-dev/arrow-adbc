@@ -40,26 +40,34 @@ func mockStruct(mem memory.Allocator, rows int, structType *arrow.StructType) ar
 		}
 		structBuilder.AppendValues(valid)
 		switch fieldBuilder.Type() {
+		case arrow.FixedWidthTypes.Boolean:
+			fillBoolValue(fieldBuilder.(*array.BooleanBuilder).AppendValues, rows)
 		case arrow.PrimitiveTypes.Int8:
 			fillValue(fieldBuilder.(*array.Int8Builder).AppendValues, rows, 0)
-		case arrow.PrimitiveTypes.Int16:
-			fillValue(fieldBuilder.(*array.Int16Builder).AppendValues, rows, 0)
-		case arrow.PrimitiveTypes.Int32:
-			fillValue(fieldBuilder.(*array.Int32Builder).AppendValues, rows, 0)
-		case arrow.PrimitiveTypes.Int64:
-			fillValue(fieldBuilder.(*array.Int64Builder).AppendValues, rows, 0)
 		case arrow.PrimitiveTypes.Uint8:
 			fillValue(fieldBuilder.(*array.Uint8Builder).AppendValues, rows, 0)
+		case arrow.PrimitiveTypes.Int16:
+			fillValue(fieldBuilder.(*array.Int16Builder).AppendValues, rows, 0)
 		case arrow.PrimitiveTypes.Uint16:
 			fillValue(fieldBuilder.(*array.Uint16Builder).AppendValues, rows, 0)
+		case arrow.PrimitiveTypes.Int32:
+			fillValue(fieldBuilder.(*array.Int32Builder).AppendValues, rows, 0)
 		case arrow.PrimitiveTypes.Uint32:
 			fillValue(fieldBuilder.(*array.Uint32Builder).AppendValues, rows, 0)
+		case arrow.PrimitiveTypes.Int64:
+			fillValue(fieldBuilder.(*array.Int64Builder).AppendValues, rows, 0)
 		case arrow.PrimitiveTypes.Uint64:
 			fillValue(fieldBuilder.(*array.Uint64Builder).AppendValues, rows, 0)
+		case arrow.FixedWidthTypes.Float16:
+			fillFloat16Value(fieldBuilder.(*array.Float16Builder).AppendValues, rows, 0)
 		case arrow.PrimitiveTypes.Float32:
 			fillValue(fieldBuilder.(*array.Float32Builder).AppendValues, rows, 0)
 		case arrow.PrimitiveTypes.Float64:
 			fillValue(fieldBuilder.(*array.Float64Builder).AppendValues, rows, 0)
+		case arrow.BinaryTypes.Binary:
+			fillBinaryValue(fieldBuilder.(*array.BinaryBuilder).AppendValues, rows, 0)
+		case arrow.BinaryTypes.String:
+			fillStringValue(fieldBuilder.(*array.StringBuilder).AppendValues, rows, 0)
 		case arrow.PrimitiveTypes.Date32, arrow.FixedWidthTypes.Date32:
 			fillValue(fieldBuilder.(*array.Date32Builder).AppendValues, rows, 0)
 		case arrow.PrimitiveTypes.Date64, arrow.FixedWidthTypes.Date64:
@@ -88,21 +96,12 @@ func mockStruct(mem memory.Allocator, rows int, structType *arrow.StructType) ar
 			fillValue(fieldBuilder.(*array.DurationBuilder).AppendValues, rows, 0)
 		case arrow.FixedWidthTypes.Duration_ns:
 			fillValue(fieldBuilder.(*array.DurationBuilder).AppendValues, rows, 0)
-
 		case arrow.FixedWidthTypes.MonthInterval:
 			fillIntervalMonthValue(fieldBuilder.(*array.MonthIntervalBuilder).AppendValues, rows, 0)
 		case arrow.FixedWidthTypes.DayTimeInterval:
 			fillIntervalDayTimeValue(fieldBuilder.(*array.DayTimeIntervalBuilder).AppendValues, rows, 0)
 		case arrow.FixedWidthTypes.MonthDayNanoInterval:
 			fillIntervalMonthDayNanoValue(fieldBuilder.(*array.MonthDayNanoIntervalBuilder).AppendValues, rows, 0)
-		case arrow.FixedWidthTypes.Boolean:
-			fillBoolValue(fieldBuilder.(*array.BooleanBuilder).AppendValues, rows)
-		case arrow.FixedWidthTypes.Float16:
-			fillFloat16Value(fieldBuilder.(*array.Float16Builder).AppendValues, rows, 0)
-		case arrow.BinaryTypes.Binary:
-			fillBinaryValue(fieldBuilder.(*array.BinaryBuilder).AppendValues, rows, 0)
-		case arrow.BinaryTypes.String:
-			fillStringValue(fieldBuilder.(*array.StringBuilder).AppendValues, rows, 0)
 		}
 	}
 	return structBuilder.NewArray()
@@ -114,26 +113,34 @@ func mockArray(mem memory.Allocator, rows int, elemType arrow.DataType) arrow.Ar
 	listBuilder.Append(true)
 
 	switch elemType {
+	case arrow.FixedWidthTypes.Boolean:
+		fillBoolValue(listBuilder.ValueBuilder().(*array.BooleanBuilder).AppendValues, rows)
 	case arrow.PrimitiveTypes.Int8:
 		fillValue(listBuilder.ValueBuilder().(*array.Int8Builder).AppendValues, rows, 0)
-	case arrow.PrimitiveTypes.Int16:
-		fillValue(listBuilder.ValueBuilder().(*array.Int16Builder).AppendValues, rows, 0)
-	case arrow.PrimitiveTypes.Int32:
-		fillValue(listBuilder.ValueBuilder().(*array.Int32Builder).AppendValues, rows, 0)
-	case arrow.PrimitiveTypes.Int64:
-		fillValue(listBuilder.ValueBuilder().(*array.Int64Builder).AppendValues, rows, 0)
 	case arrow.PrimitiveTypes.Uint8:
 		fillValue(listBuilder.ValueBuilder().(*array.Uint8Builder).AppendValues, rows, 0)
+	case arrow.PrimitiveTypes.Int16:
+		fillValue(listBuilder.ValueBuilder().(*array.Int16Builder).AppendValues, rows, 0)
 	case arrow.PrimitiveTypes.Uint16:
 		fillValue(listBuilder.ValueBuilder().(*array.Uint16Builder).AppendValues, rows, 0)
+	case arrow.PrimitiveTypes.Int32:
+		fillValue(listBuilder.ValueBuilder().(*array.Int32Builder).AppendValues, rows, 0)
 	case arrow.PrimitiveTypes.Uint32:
 		fillValue(listBuilder.ValueBuilder().(*array.Uint32Builder).AppendValues, rows, 0)
+	case arrow.PrimitiveTypes.Int64:
+		fillValue(listBuilder.ValueBuilder().(*array.Int64Builder).AppendValues, rows, 0)
 	case arrow.PrimitiveTypes.Uint64:
 		fillValue(listBuilder.ValueBuilder().(*array.Uint64Builder).AppendValues, rows, 0)
+	case arrow.FixedWidthTypes.Float16:
+		fillFloat16Value(listBuilder.ValueBuilder().(*array.Float16Builder).AppendValues, rows, 0)
 	case arrow.PrimitiveTypes.Float32:
 		fillValue(listBuilder.ValueBuilder().(*array.Float32Builder).AppendValues, rows, 0)
 	case arrow.PrimitiveTypes.Float64:
 		fillValue(listBuilder.ValueBuilder().(*array.Float64Builder).AppendValues, rows, 0)
+	case arrow.BinaryTypes.Binary:
+		fillBinaryValue(listBuilder.ValueBuilder().(*array.BinaryBuilder).AppendValues, rows, 0)
+	case arrow.BinaryTypes.String:
+		fillStringValue(listBuilder.ValueBuilder().(*array.StringBuilder).AppendValues, rows, 0)
 	case arrow.PrimitiveTypes.Date32, arrow.FixedWidthTypes.Date32:
 		fillValue(listBuilder.ValueBuilder().(*array.Date32Builder).AppendValues, rows, 0)
 	case arrow.PrimitiveTypes.Date64, arrow.FixedWidthTypes.Date64:
@@ -162,44 +169,23 @@ func mockArray(mem memory.Allocator, rows int, elemType arrow.DataType) arrow.Ar
 		fillValue(listBuilder.ValueBuilder().(*array.DurationBuilder).AppendValues, rows, 0)
 	case arrow.FixedWidthTypes.Duration_ns:
 		fillValue(listBuilder.ValueBuilder().(*array.DurationBuilder).AppendValues, rows, 0)
-
 	case arrow.FixedWidthTypes.MonthInterval:
 		fillIntervalMonthValue(listBuilder.ValueBuilder().(*array.MonthIntervalBuilder).AppendValues, rows, 0)
 	case arrow.FixedWidthTypes.DayTimeInterval:
 		fillIntervalDayTimeValue(listBuilder.ValueBuilder().(*array.DayTimeIntervalBuilder).AppendValues, rows, 0)
 	case arrow.FixedWidthTypes.MonthDayNanoInterval:
 		fillIntervalMonthDayNanoValue(listBuilder.ValueBuilder().(*array.MonthDayNanoIntervalBuilder).AppendValues, rows, 0)
-	case arrow.FixedWidthTypes.Boolean:
-		fillBoolValue(listBuilder.ValueBuilder().(*array.BooleanBuilder).AppendValues, rows)
-	case arrow.FixedWidthTypes.Float16:
-		fillFloat16Value(listBuilder.ValueBuilder().(*array.Float16Builder).AppendValues, rows, 0)
-	case arrow.BinaryTypes.Binary:
-		fillBinaryValue(listBuilder.ValueBuilder().(*array.BinaryBuilder).AppendValues, rows, 0)
-	case arrow.BinaryTypes.String:
-		fillStringValue(listBuilder.ValueBuilder().(*array.StringBuilder).AppendValues, rows, 0)
 	}
 
 	return listBuilder.NewArray()
-}
-
-func fillValue[T constraints.Integer | constraints.Float](append func(value []T, valid []bool), rows int, start int) {
-	append(getSlice(rows, T(start)), nil)
 }
 
 func fillBoolValue(append func(value []bool, valid []bool), rows int) {
 	append(getBoolSlice(rows), nil)
 }
 
-func fillIntervalMonthValue(append func(value []arrow.MonthInterval, valid []bool), rows int, start int) {
-	append(getIntervalMonthSlice(rows, start), nil)
-}
-
-func fillIntervalDayTimeValue(append func(value []arrow.DayTimeInterval, valid []bool), rows int, start int) {
-	append(getIntervalDayTimeSlice(rows, start), nil)
-}
-
-func fillIntervalMonthDayNanoValue(append func(value []arrow.MonthDayNanoInterval, valid []bool), rows int, start int) {
-	append(getIntervalMonthDayNanoSlice(rows, start), nil)
+func fillValue[T constraints.Integer | constraints.Float](append func(value []T, valid []bool), rows int, start int) {
+	append(getSlice(rows, T(start)), nil)
 }
 
 func fillFloat16Value(append func(value []float16.Num, valid []bool), rows int, start int) {
@@ -215,12 +201,16 @@ func fillStringValue(append func(value []string, valid []bool), rows int, start 
 	append(getStringSlice(rows, start), nil)
 }
 
-func getSlice[T constraints.Integer | constraints.Float](rows int, start T) []T {
-	slice := make([]T, rows)
-	for i := int64(0); i < int64(rows); i++ {
-		slice[i] = T(i) + start
-	}
-	return slice
+func fillIntervalMonthValue(append func(value []arrow.MonthInterval, valid []bool), rows int, start int) {
+	append(getIntervalMonthSlice(rows, start), nil)
+}
+
+func fillIntervalDayTimeValue(append func(value []arrow.DayTimeInterval, valid []bool), rows int, start int) {
+	append(getIntervalDayTimeSlice(rows, start), nil)
+}
+
+func fillIntervalMonthDayNanoValue(append func(value []arrow.MonthDayNanoInterval, valid []bool), rows int, start int) {
+	append(getIntervalMonthDayNanoSlice(rows, start), nil)
 }
 
 func getBoolSlice(rows int) []bool {
@@ -231,26 +221,10 @@ func getBoolSlice(rows int) []bool {
 	return slice
 }
 
-func getIntervalMonthSlice(rows int, start int) []arrow.MonthInterval {
-	slice := make([]arrow.MonthInterval, rows)
-	for i := start; i < start+rows; i++ {
-		slice[i] = arrow.MonthInterval(i)
-	}
-	return slice
-}
-
-func getIntervalDayTimeSlice(rows int, start int) []arrow.DayTimeInterval {
-	slice := make([]arrow.DayTimeInterval, rows)
-	for i := start; i < start+rows; i++ {
-		slice[i] = arrow.DayTimeInterval{Days: int32(i), Milliseconds: int32(i)}
-	}
-	return slice
-}
-
-func getIntervalMonthDayNanoSlice(rows int, start int) []arrow.MonthDayNanoInterval {
-	slice := make([]arrow.MonthDayNanoInterval, rows)
-	for i := start; i < start+rows; i++ {
-		slice[i] = arrow.MonthDayNanoInterval{Months: int32(i), Days: int32(i), Nanoseconds: int64(i)}
+func getSlice[T constraints.Integer | constraints.Float](rows int, start T) []T {
+	slice := make([]T, rows)
+	for i := int64(0); i < int64(rows); i++ {
+		slice[i] = T(i) + start
 	}
 	return slice
 }
@@ -288,32 +262,35 @@ func getStringSlice(rows int, start int) []string {
 	return slice
 }
 
+func getIntervalMonthSlice(rows int, start int) []arrow.MonthInterval {
+	slice := make([]arrow.MonthInterval, rows)
+	for i := start; i < start+rows; i++ {
+		slice[i] = arrow.MonthInterval(i)
+	}
+	return slice
+}
+
+func getIntervalDayTimeSlice(rows int, start int) []arrow.DayTimeInterval {
+	slice := make([]arrow.DayTimeInterval, rows)
+	for i := start; i < start+rows; i++ {
+		slice[i] = arrow.DayTimeInterval{Days: int32(i), Milliseconds: int32(i)}
+	}
+	return slice
+}
+
+func getIntervalMonthDayNanoSlice(rows int, start int) []arrow.MonthDayNanoInterval {
+	slice := make([]arrow.MonthDayNanoInterval, rows)
+	for i := start; i < start+rows; i++ {
+		slice[i] = arrow.MonthDayNanoInterval{Months: int32(i), Days: int32(i), Nanoseconds: int64(i)}
+	}
+	return slice
+}
+
 func mockInt8(mem memory.Allocator, rows int) arrow.Array {
 	ib := array.NewInt8Builder(mem)
 	defer ib.Release()
 	fillValue(ib.AppendValues, rows, 0)
 	return ib.NewInt8Array()
-}
-
-func mockInt16(mem memory.Allocator, rows int) arrow.Array {
-	ib := array.NewInt16Builder(mem)
-	defer ib.Release()
-	fillValue(ib.AppendValues, rows, 0)
-	return ib.NewInt16Array()
-}
-
-func mockInt32(mem memory.Allocator, rows int) arrow.Array {
-	ib := array.NewInt32Builder(mem)
-	defer ib.Release()
-	fillValue(ib.AppendValues, rows, 0)
-	return ib.NewInt32Array()
-}
-
-func mockInt64(mem memory.Allocator, rows int) arrow.Array {
-	ib := array.NewInt64Builder(mem)
-	defer ib.Release()
-	fillValue(ib.AppendValues, rows, 0)
-	return ib.NewInt64Array()
 }
 
 func mockUint8(mem memory.Allocator, rows int) arrow.Array {
@@ -323,11 +300,25 @@ func mockUint8(mem memory.Allocator, rows int) arrow.Array {
 	return ib.NewUint8Array()
 }
 
+func mockInt16(mem memory.Allocator, rows int) arrow.Array {
+	ib := array.NewInt16Builder(mem)
+	defer ib.Release()
+	fillValue(ib.AppendValues, rows, 0)
+	return ib.NewInt16Array()
+}
+
 func mockUint16(mem memory.Allocator, rows int) arrow.Array {
 	ib := array.NewUint16Builder(mem)
 	defer ib.Release()
 	fillValue(ib.AppendValues, rows, 0)
 	return ib.NewUint16Array()
+}
+
+func mockInt32(mem memory.Allocator, rows int) arrow.Array {
+	ib := array.NewInt32Builder(mem)
+	defer ib.Release()
+	fillValue(ib.AppendValues, rows, 0)
+	return ib.NewInt32Array()
 }
 
 func mockUint32(mem memory.Allocator, rows int) arrow.Array {
@@ -337,11 +328,29 @@ func mockUint32(mem memory.Allocator, rows int) arrow.Array {
 	return ib.NewUint32Array()
 }
 
+func mockInt64(mem memory.Allocator, rows int) arrow.Array {
+	ib := array.NewInt64Builder(mem)
+	defer ib.Release()
+	fillValue(ib.AppendValues, rows, 0)
+	return ib.NewInt64Array()
+}
+
 func mockUint64(mem memory.Allocator, rows int) arrow.Array {
 	ib := array.NewUint64Builder(mem)
 	defer ib.Release()
 	fillValue(ib.AppendValues, rows, 0)
 	return ib.NewUint64Array()
+}
+
+func mockFloat16(mem memory.Allocator, rows int) arrow.Array {
+	ib := array.NewFloat16Builder(mem)
+	defer ib.Release()
+	values := make([]float16.Num, rows)
+	for i := 0; i < rows; i++ {
+		values[i] = float16.New(float32(i + 1))
+	}
+	ib.AppendValues(values, nil)
+	return ib.NewFloat16Array()
 }
 
 func mockFloat32(mem memory.Allocator, rows int) arrow.Array {
@@ -372,25 +381,18 @@ func mockFloat64(mem memory.Allocator, rows int) arrow.Array {
 	return ib.NewFloat64Array()
 }
 
-func mockDate32(mem memory.Allocator, rows int) arrow.Array {
-	ib := array.NewDate32Builder(mem)
-	defer ib.Release()
-	fillValue(ib.AppendValues, rows, 0)
-	return ib.NewDate32Array()
-}
-
-func mockDate64(mem memory.Allocator, rows int) arrow.Array {
-	ib := array.NewDate64Builder(mem)
-	defer ib.Release()
-	fillValue(ib.AppendValues, rows, 0)
-	return ib.NewDate64Array()
-}
-
 func mockBinary(mem memory.Allocator, rows int) arrow.Array {
 	ib := array.NewBinaryBuilder(mem, arrow.BinaryTypes.Binary)
 	defer ib.Release()
 	fillBinaryValue(ib.AppendValues, rows, 0)
 	return ib.NewBinaryArray()
+}
+
+func mockString(mem memory.Allocator, rows int) arrow.Array {
+	ib := array.NewStringBuilder(mem)
+	defer ib.Release()
+	fillStringValue(ib.AppendValues, rows, 0)
+	return ib.NewStringArray()
 }
 
 func mockFixedSizeBinary(mem memory.Allocator, rows int) arrow.Array {
@@ -413,71 +415,18 @@ func mockFixedSizeBinary(mem memory.Allocator, rows int) arrow.Array {
 	return ib.NewFixedSizeBinaryArray()
 }
 
-func mockString(mem memory.Allocator, rows int) arrow.Array {
-	ib := array.NewStringBuilder(mem)
-	defer ib.Release()
-	fillStringValue(ib.AppendValues, rows, 0)
-	return ib.NewStringArray()
-}
-
-func mockDuration_s(mem memory.Allocator, rows int) arrow.Array {
-	ib := array.NewDurationBuilder(mem, &arrow.DurationType{Unit: arrow.Second})
+func mockDate32(mem memory.Allocator, rows int) arrow.Array {
+	ib := array.NewDate32Builder(mem)
 	defer ib.Release()
 	fillValue(ib.AppendValues, rows, 0)
-	return ib.NewDurationArray()
+	return ib.NewDate32Array()
 }
 
-func mockDuration_ms(mem memory.Allocator, rows int) arrow.Array {
-	ib := array.NewDurationBuilder(mem, &arrow.DurationType{Unit: arrow.Millisecond})
+func mockDate64(mem memory.Allocator, rows int) arrow.Array {
+	ib := array.NewDate64Builder(mem)
 	defer ib.Release()
 	fillValue(ib.AppendValues, rows, 0)
-	return ib.NewDurationArray()
-}
-
-func mockDuration_us(mem memory.Allocator, rows int) arrow.Array {
-	ib := array.NewDurationBuilder(mem, &arrow.DurationType{Unit: arrow.Microsecond})
-	defer ib.Release()
-	fillValue(ib.AppendValues, rows, 0)
-	return ib.NewDurationArray()
-}
-
-func mockDuration_ns(mem memory.Allocator, rows int) arrow.Array {
-	ib := array.NewDurationBuilder(mem, &arrow.DurationType{Unit: arrow.Nanosecond})
-	defer ib.Release()
-	fillValue(ib.AppendValues, rows, 0)
-	return ib.NewDurationArray()
-}
-
-func mockFloat16(mem memory.Allocator, rows int) arrow.Array {
-	ib := array.NewFloat16Builder(mem)
-	defer ib.Release()
-	values := make([]float16.Num, rows)
-	for i := 0; i < rows; i++ {
-		values[i] = float16.New(float32(i + 1))
-	}
-	ib.AppendValues(values, nil)
-	return ib.NewFloat16Array()
-}
-
-func mockMonthInterval(mem memory.Allocator, rows int) arrow.Array {
-	ib := array.NewMonthIntervalBuilder(mem)
-	defer ib.Release()
-	fillValue(ib.AppendValues, rows, 0)
-	return ib.NewMonthIntervalArray()
-}
-
-func mockDayTimeInterval(mem memory.Allocator, rows int) arrow.Array {
-	ib := array.NewDayTimeIntervalBuilder(mem)
-	defer ib.Release()
-	fillIntervalDayTimeValue(ib.AppendValues, rows, 0)
-	return ib.NewDayTimeIntervalArray()
-}
-
-func mockMonthDayNanoInterval(mem memory.Allocator, rows int) arrow.Array {
-	ib := array.NewMonthDayNanoIntervalBuilder(mem)
-	defer ib.Release()
-	fillIntervalMonthDayNanoValue(ib.AppendValues, rows, 0)
-	return ib.NewMonthDayNanoIntervalArray()
+	return ib.NewDate64Array()
 }
 
 func mockTime32s(mem memory.Allocator, rows int) arrow.Array {
@@ -534,6 +483,55 @@ func mockTimestamp_ns(mem memory.Allocator, rows int) arrow.Array {
 	defer ib.Release()
 	fillValue(ib.AppendValues, rows, 0)
 	return ib.NewTimestampArray()
+}
+
+func mockDuration_s(mem memory.Allocator, rows int) arrow.Array {
+	ib := array.NewDurationBuilder(mem, &arrow.DurationType{Unit: arrow.Second})
+	defer ib.Release()
+	fillValue(ib.AppendValues, rows, 0)
+	return ib.NewDurationArray()
+}
+
+func mockDuration_ms(mem memory.Allocator, rows int) arrow.Array {
+	ib := array.NewDurationBuilder(mem, &arrow.DurationType{Unit: arrow.Millisecond})
+	defer ib.Release()
+	fillValue(ib.AppendValues, rows, 0)
+	return ib.NewDurationArray()
+}
+
+func mockDuration_us(mem memory.Allocator, rows int) arrow.Array {
+	ib := array.NewDurationBuilder(mem, &arrow.DurationType{Unit: arrow.Microsecond})
+	defer ib.Release()
+	fillValue(ib.AppendValues, rows, 0)
+	return ib.NewDurationArray()
+}
+
+func mockDuration_ns(mem memory.Allocator, rows int) arrow.Array {
+	ib := array.NewDurationBuilder(mem, &arrow.DurationType{Unit: arrow.Nanosecond})
+	defer ib.Release()
+	fillValue(ib.AppendValues, rows, 0)
+	return ib.NewDurationArray()
+}
+
+func mockMonthInterval(mem memory.Allocator, rows int) arrow.Array {
+	ib := array.NewMonthIntervalBuilder(mem)
+	defer ib.Release()
+	fillValue(ib.AppendValues, rows, 0)
+	return ib.NewMonthIntervalArray()
+}
+
+func mockDayTimeInterval(mem memory.Allocator, rows int) arrow.Array {
+	ib := array.NewDayTimeIntervalBuilder(mem)
+	defer ib.Release()
+	fillIntervalDayTimeValue(ib.AppendValues, rows, 0)
+	return ib.NewDayTimeIntervalArray()
+}
+
+func mockMonthDayNanoInterval(mem memory.Allocator, rows int) arrow.Array {
+	ib := array.NewMonthDayNanoIntervalBuilder(mem)
+	defer ib.Release()
+	fillIntervalMonthDayNanoValue(ib.AppendValues, rows, 0)
+	return ib.NewMonthDayNanoIntervalArray()
 }
 
 // func mockList(mem memory.Allocator, rows, length int64, innerList arrow.Array) arrow.Array {

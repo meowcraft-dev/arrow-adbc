@@ -281,7 +281,7 @@ func getIntervalDayTimeSlice(rows int, start int) []arrow.DayTimeInterval {
 func getIntervalMonthDayNanoSlice(rows int, start int) []arrow.MonthDayNanoInterval {
 	slice := make([]arrow.MonthDayNanoInterval, rows)
 	for i := start; i < start+rows; i++ {
-		slice[i] = arrow.MonthDayNanoInterval{Months: int32(i), Days: int32(i), Nanoseconds: int64(i)}
+		slice[i] = arrow.MonthDayNanoInterval{Months: int32(i), Days: int32(100 + i), Nanoseconds: int64(10000 + i)}
 	}
 	return slice
 }

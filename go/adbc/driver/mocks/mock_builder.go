@@ -516,7 +516,7 @@ func mockDuration_ns(mem memory.Allocator, rows int) arrow.Array {
 func mockMonthInterval(mem memory.Allocator, rows int) arrow.Array {
 	ib := array.NewMonthIntervalBuilder(mem)
 	defer ib.Release()
-	fillValue(ib.AppendValues, rows, 0)
+	fillIntervalMonthValue(ib.AppendValues, rows, 0)
 	return ib.NewMonthIntervalArray()
 }
 

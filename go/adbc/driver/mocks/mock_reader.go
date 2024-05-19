@@ -137,7 +137,7 @@ var (
 			builder: mockDayTimeInterval,
 		},
 		"interval_monthdaynano": {
-			field:   arrow.Field{Name: "interval_monthdaynano", Type: arrow.FixedWidthTypes.MonthInterval},
+			field:   arrow.Field{Name: "interval_monthdaynano", Type: arrow.FixedWidthTypes.MonthDayNanoInterval},
 			builder: mockMonthDayNanoInterval,
 		},
 		"time32s": {

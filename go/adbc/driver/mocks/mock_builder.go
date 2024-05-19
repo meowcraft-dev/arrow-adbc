@@ -273,7 +273,7 @@ func getIntervalMonthSlice(rows int, start int) []arrow.MonthInterval {
 func getIntervalDayTimeSlice(rows int, start int) []arrow.DayTimeInterval {
 	slice := make([]arrow.DayTimeInterval, rows)
 	for i := start; i < start+rows; i++ {
-		slice[i] = arrow.DayTimeInterval{Days: int32(i), Milliseconds: int32(i)}
+		slice[i] = arrow.DayTimeInterval{Days: int32(i), Milliseconds: int32(1000 + i)}
 	}
 	return slice
 }

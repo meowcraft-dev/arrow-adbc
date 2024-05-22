@@ -44,41 +44,47 @@ type typeBuilder struct {
 }
 
 var (
-	rowsRegex      = regexp.MustCompile(`^(?P<rows>\d+)[\s]*:`)
-	listRegex      = regexp.MustCompile(`^list<(?P<len>\d*):?(?P<typename>.+)>`)
-	structRegex    = regexp.MustCompile(`^struct\<(?P<struct>.+)\>`)
+	rowsRegex   = regexp.MustCompile(`^(?P<rows>\d+)[\s]*:`)
+	listRegex   = regexp.MustCompile(`^list<(?P<len>\d*):?(?P<typename>.+)>`)
+	structRegex = regexp.MustCompile(`^struct\<(?P<struct>.+)\>`)
+
+	// https://arrow.apache.org/docs/format/CDataInterface.html
 	availableTypes = map[string]typeBuilder{
 		"int8": {
 			field:   arrow.Field{Name: "int8", Type: arrow.PrimitiveTypes.Int8},
 			builder: mockInt8,
 		},
-		"int16": {
-			field:   arrow.Field{Name: "int16", Type: arrow.PrimitiveTypes.Int16},
-			builder: mockInt16,
-		},
-		"int32": {
-			field:   arrow.Field{Name: "int32", Type: arrow.PrimitiveTypes.Int32},
-			builder: mockInt32,
-		},
-		"int64": {
-			field:   arrow.Field{Name: "int64", Type: arrow.PrimitiveTypes.Int64},
-			builder: mockInt64,
-		},
 		"uint8": {
 			field:   arrow.Field{Name: "uint8", Type: arrow.PrimitiveTypes.Uint8},
 			builder: mockUint8,
+		},
+		"int16": {
+			field:   arrow.Field{Name: "int16", Type: arrow.PrimitiveTypes.Int16},
+			builder: mockInt16,
 		},
 		"uint16": {
 			field:   arrow.Field{Name: "uint16", Type: arrow.PrimitiveTypes.Uint16},
 			builder: mockUint16,
 		},
+		"int32": {
+			field:   arrow.Field{Name: "int32", Type: arrow.PrimitiveTypes.Int32},
+			builder: mockInt32,
+		},
 		"uint32": {
 			field:   arrow.Field{Name: "uint32", Type: arrow.PrimitiveTypes.Uint32},
 			builder: mockUint32,
 		},
+		"int64": {
+			field:   arrow.Field{Name: "int64", Type: arrow.PrimitiveTypes.Int64},
+			builder: mockInt64,
+		},
 		"uint64": {
 			field:   arrow.Field{Name: "uint64", Type: arrow.PrimitiveTypes.Uint64},
 			builder: mockUint64,
+		},
+		"float16": {
+			field:   arrow.Field{Name: "float16", Type: arrow.FixedWidthTypes.Float16},
+			builder: mockFloat16,
 		},
 		"float32": {
 			field:   arrow.Field{Name: "float32", Type: arrow.PrimitiveTypes.Float32},
@@ -87,14 +93,6 @@ var (
 		"float64": {
 			field:   arrow.Field{Name: "float64", Type: arrow.PrimitiveTypes.Float64},
 			builder: mockFloat64,
-		},
-		"date32": {
-			field:   arrow.Field{Name: "date32", Type: arrow.PrimitiveTypes.Date32},
-			builder: mockDate32,
-		},
-		"date64": {
-			field:   arrow.Field{Name: "date64", Type: arrow.PrimitiveTypes.Date64},
-			builder: mockDate64,
 		},
 		"binary": {
 			field:   arrow.Field{Name: "binary", Type: arrow.BinaryTypes.Binary},
@@ -108,37 +106,13 @@ var (
 			field:   arrow.Field{Name: "fixed_size_binary", Type: &arrow.FixedSizeBinaryType{ByteWidth: 5}},
 			builder: mockFixedSizeBinary,
 		},
-		"duration_s": {
-			field:   arrow.Field{Name: "duration_s", Type: arrow.FixedWidthTypes.Duration_s},
-			builder: mockDuration_s,
+		"date32": {
+			field:   arrow.Field{Name: "date32", Type: arrow.PrimitiveTypes.Date32},
+			builder: mockDate32,
 		},
-		"duration_ms": {
-			field:   arrow.Field{Name: "duration_ms", Type: arrow.FixedWidthTypes.Duration_ms},
-			builder: mockDuration_ms,
-		},
-		"duration_us": {
-			field:   arrow.Field{Name: "duration_us", Type: arrow.FixedWidthTypes.Duration_us},
-			builder: mockDuration_us,
-		},
-		"duration_ns": {
-			field:   arrow.Field{Name: "duration_ns", Type: arrow.FixedWidthTypes.Duration_ns},
-			builder: mockDuration_ns,
-		},
-		"float16": {
-			field:   arrow.Field{Name: "float16", Type: arrow.FixedWidthTypes.Float16},
-			builder: mockFloat16,
-		},
-		"interval_month": {
-			field:   arrow.Field{Name: "interval_month", Type: arrow.FixedWidthTypes.MonthInterval},
-			builder: mockMonthInterval,
-		},
-		"interval_daytime": {
-			field:   arrow.Field{Name: "interval_daytime", Type: arrow.FixedWidthTypes.DayTimeInterval},
-			builder: mockDayTimeInterval,
-		},
-		"interval_monthdaynano": {
-			field:   arrow.Field{Name: "interval_monthdaynano", Type: arrow.FixedWidthTypes.MonthDayNanoInterval},
-			builder: mockMonthDayNanoInterval,
+		"date64": {
+			field:   arrow.Field{Name: "date64", Type: arrow.PrimitiveTypes.Date64},
+			builder: mockDate64,
 		},
 		"time32s": {
 			field:   arrow.Field{Name: "time32s", Type: arrow.FixedWidthTypes.Time32s},
@@ -171,6 +145,34 @@ var (
 		"timestamp_ns": {
 			field:   arrow.Field{Name: "timestamp_ns", Type: arrow.FixedWidthTypes.Timestamp_ns},
 			builder: mockTimestamp_ns,
+		},
+		"duration_s": {
+			field:   arrow.Field{Name: "duration_s", Type: arrow.FixedWidthTypes.Duration_s},
+			builder: mockDuration_s,
+		},
+		"duration_ms": {
+			field:   arrow.Field{Name: "duration_ms", Type: arrow.FixedWidthTypes.Duration_ms},
+			builder: mockDuration_ms,
+		},
+		"duration_us": {
+			field:   arrow.Field{Name: "duration_us", Type: arrow.FixedWidthTypes.Duration_us},
+			builder: mockDuration_us,
+		},
+		"duration_ns": {
+			field:   arrow.Field{Name: "duration_ns", Type: arrow.FixedWidthTypes.Duration_ns},
+			builder: mockDuration_ns,
+		},
+		"interval_month": {
+			field:   arrow.Field{Name: "interval_month", Type: arrow.FixedWidthTypes.MonthInterval},
+			builder: mockMonthInterval,
+		},
+		"interval_daytime": {
+			field:   arrow.Field{Name: "interval_daytime", Type: arrow.FixedWidthTypes.DayTimeInterval},
+			builder: mockDayTimeInterval,
+		},
+		"interval_monthdaynano": {
+			field:   arrow.Field{Name: "interval_monthdaynano", Type: arrow.FixedWidthTypes.MonthDayNanoInterval},
+			builder: mockMonthDayNanoInterval,
 		},
 	}
 )

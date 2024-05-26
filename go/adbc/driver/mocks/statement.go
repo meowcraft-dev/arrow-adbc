@@ -265,12 +265,12 @@ func (st *statement) ExecuteQuery(ctx context.Context) (array.RecordReader, int6
 	if query == "passthrough" {
 		if st.paramBinding != nil {
 			return &mockReader{
-				refCount:   1,
-				rows:       1,
-				currentRow: 0,
-				schema:     st.paramBinding.Schema(),
-				record:     st.paramBinding,
-			}, 1, nil
+				refCount:           1,
+				numRecords:         1,
+				currentRecordIndex: 0,
+				schema:             st.paramBinding.Schema(),
+				record:             st.paramBinding,
+			}, st.paramBinding.NumRows(), nil
 		} else if st.streamBinding != nil {
 			return st.streamBinding, -1, nil
 		} else {

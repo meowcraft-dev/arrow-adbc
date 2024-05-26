@@ -18,7 +18,9 @@
 package mocks
 
 import (
+	"errors"
 	"fmt"
+	"io"
 	"regexp"
 	"strconv"
 	"strings"
@@ -44,8 +46,8 @@ type typeBuilder struct {
 }
 
 var (
-	rowsRegex   = regexp.MustCompile(`^(?P<rows>\d+)[\s]*:`)
-	listRegex   = regexp.MustCompile(`^list<(?P<len>\d*):?(?P<typename>.+)>`)
+	rowsRegex = regexp.MustCompile(`^(?P<rows>\d+)[\s]*:`)
+	//listRegex   = regexp.MustCompile(`^list[\s]*<[\s]*(?P<len>\d*):?(?P<typename>.+)>`)
 	structRegex = regexp.MustCompile(`^struct\<(?P<struct>.+)\>`)
 
 	// https://arrow.apache.org/docs/format/CDataInterface.html
@@ -177,7 +179,350 @@ var (
 	}
 )
 
+func parseListType(query string, mem memory.Allocator) (arrow.DataType, arrow.Array, int, error) {
+	rows := 1
+	matches := rowsRegex.FindStringSubmatch(query)
+	rowsString := ""
+	if len(matches) == 2 {
+		var err error
+		rowsString = matches[rowsRegex.SubexpIndex("rows")]
+		if rows, err = strconv.Atoi(rowsString); err != nil {
+			return nil, nil, -1, err
+		}
+	}
+	query = query[len(rowsString):]
+	if query[0] == ':' {
+		query = query[1:]
+	}
+
+	var t string
+	requestTypes := strings.SplitN(query, ",", 2)
+
+	if len(requestTypes) == 2 {
+		t = requestTypes[0]
+		query = requestTypes[1]
+	} else if len(requestTypes) == 1 {
+		t = requestTypes[0]
+		query = ""
+	}
+
+	if builder, ok := availableTypes[t]; ok {
+		return builder.field.Type, builder.builder(mem, rows), rows, nil
+	} else if strings.HasPrefix(t, "list") {
+		if len(t) > 4 {
+			expected := 0
+			startIndex := -1
+			endIndex := -1
+			for i := 4; i < len(t); i++ {
+				if t[i] == '<' {
+					if startIndex == -1 {
+						startIndex = i
+					}
+					expected += 1
+				} else if t[i] == '>' {
+					expected -= 1
+					if expected == 0 {
+						endIndex = i
+						break
+					}
+				}
+			}
+
+			if expected != 0 {
+				return nil, nil, rows, adbc.Error{
+					Code: adbc.StatusInvalidArgument,
+					Msg:  fmt.Sprintf("unmatched brackets in query: %s", query),
+				}
+			}
+
+			if startIndex != -1 && endIndex != -1 {
+
+			}
+			fmt.Printf("list inner type: %s\n", t[startIndex:endIndex])
+			innerType, innerValue, _, err := parseListType(t[5:len(t)-1], mem)
+			if err != nil {
+				return nil, nil, rows, err
+			}
+			return arrow.ListOf(innerType), innerValue, rows, nil
+		} else {
+			return nil, nil, rows, adbc.Error{
+				Code: adbc.StatusInvalidArgument,
+				Msg:  fmt.Sprintf("invalid type: `%s`", t),
+			}
+		}
+	} else {
+		return nil, nil, rows, adbc.Error{
+			Code: adbc.StatusInvalidArgument,
+			Msg:  fmt.Sprintf("type `%s` not supported yet", t),
+		}
+	}
+}
+
+type ParseStatus int
+
+const (
+	Start ParseStatus = iota
+	ExpectType
+	ENd
+)
+
+func parseRows(query string, queryLen, index int) (uint64, int, error) {
+	rowEnd := -1
+	for j := index + 1; j < queryLen; j++ {
+		if query[j] >= '0' && query[j] <= '9' {
+			continue
+		} else {
+			rowEnd = j
+			break
+		}
+	}
+	parsedRows, err := strconv.Atoi(query[index:rowEnd])
+	if err != nil {
+		return 0, 0, adbc.Error{
+			Code: adbc.StatusInvalidArgument,
+			Msg:  fmt.Sprintf("invalid query: `%s`: %s", query, err.Error()),
+		}
+	}
+	return uint64(parsedRows), rowEnd, nil
+}
+
+func parseList(mem memory.Allocator, query string, queryLen, startIndex int) (arrow.DataType, arrow.Field, arrow.Array, uint64, int, error) {
+	leftEnd, err := expectLeftAngleBracket(query, queryLen, startIndex)
+	if err != nil {
+		return nil, arrow.Field{}, nil, 0, 0, err
+	}
+	listInnerType, _, innerArray, innerRows, listEnd, err := parseQueryToFields(mem, query, queryLen, leftEnd, Start, 1, false)
+	if err != nil {
+		return nil, arrow.Field{}, nil, 0, 0, err
+	}
+	rightEnd, err := expectRightAngleBracket(query, queryLen, listEnd)
+	if err != nil {
+		return nil, arrow.Field{}, nil, 0, 0, err
+	}
+	listType := arrow.ListOf(listInnerType[0])
+
+	return listType, arrow.Field{Name: "list", Type: listType}, innerArray[0], innerRows[0], rightEnd, nil
+}
+
+func parseType(mem memory.Allocator, query string, queryLen, index int, rows uint64) (arrow.DataType, arrow.Field, arrow.Array, uint64, int, error) {
+	if index == queryLen {
+		return nil, arrow.Field{}, nil, 0, 0, io.EOF
+	}
+
+	typeEnd := -1
+	for j := index + 1; j < queryLen; j++ {
+		if (query[j] >= '0' && query[j] <= '9') || (query[j] >= 'a' && query[j] <= 'z') || (query[j] >= 'A' && query[j] <= 'Z') {
+			continue
+		} else {
+			typeEnd = j
+			break
+		}
+	}
+
+	if typeEnd == -1 {
+		return nil, arrow.Field{}, nil, 0, 0, adbc.Error{
+			Code: adbc.StatusInvalidArgument,
+			Msg:  fmt.Sprintf("[parseType] invalid query: `%s`", query),
+		}
+	}
+
+	typeString := query[index:typeEnd]
+	if builder, ok := availableTypes[typeString]; ok {
+		return builder.field.Type, builder.field, builder.builder(mem, int(rows)), rows, typeEnd, nil
+	} else if typeString == "list" {
+		return parseList(mem, query, queryLen, typeEnd)
+	} else {
+		return nil, arrow.Field{}, nil, 0, 0, adbc.Error{
+			Code: adbc.StatusInvalidArgument,
+			Msg:  fmt.Sprintf("invalid query [parseType]: `%s`", query),
+		}
+	}
+}
+
+func expectLeftAngleBracket(query string, queryLen, index int) (int, error) {
+	if index == queryLen {
+		return 0, io.EOF
+	}
+
+	for i := index; i < queryLen; i++ {
+		if query[i] == '<' {
+			return i + 1, nil
+		} else if query[i] == ' ' || query[i] == '\t' || query[i] == '\n' {
+			continue
+		} else {
+			return 0, adbc.Error{
+				Code: adbc.StatusInvalidArgument,
+				Msg:  fmt.Sprintf("expecting a `<` but got: `%c` at %d", query[i], i),
+			}
+		}
+	}
+	return queryLen, io.EOF
+}
+
+func expectRightAngleBracket(query string, queryLen, index int) (int, error) {
+	if index == queryLen {
+		return 0, io.EOF
+	}
+
+	for i := index; i < queryLen; i++ {
+		if query[i] == '>' {
+			return i + 1, nil
+		} else if query[i] == ' ' || query[i] == '\t' || query[i] == '\n' {
+			continue
+		} else {
+			return 0, adbc.Error{
+				Code: adbc.StatusInvalidArgument,
+				Msg:  fmt.Sprintf("expecting a `<` but got: `%c` at %d", query[i], i),
+			}
+		}
+	}
+	return queryLen, io.EOF
+}
+
+func expectOneComma(query string, queryLen, index int) (int, error) {
+	if index == queryLen {
+		return 0, io.EOF
+	}
+
+	for i := index; i < queryLen; i++ {
+		if query[i] == ',' {
+			return i + 1, nil
+		} else if query[i] == ' ' || query[i] == '\t' || query[i] == '\n' {
+			continue
+		} else {
+			return 0, adbc.Error{
+				Code: adbc.StatusInvalidArgument,
+				Msg:  fmt.Sprintf("expecting a `,` but got: `%c` at %d", query[i], i),
+			}
+		}
+	}
+	return queryLen, io.EOF
+}
+
+func expectOneColumn(query string, queryLen, index int) (int, error) {
+	if index == queryLen {
+		return 0, io.EOF
+	}
+
+	for i := index; i < queryLen; i++ {
+		if query[i] == ':' {
+			return i + 1, nil
+		} else if query[i] == ' ' || query[i] == '\t' || query[i] == '\n' {
+			continue
+		} else {
+			return 0, adbc.Error{
+				Code: adbc.StatusInvalidArgument,
+				Msg:  fmt.Sprintf("expecting a `:` but got: `%c` at %d", query[i], i),
+			}
+		}
+	}
+	return queryLen, io.EOF
+}
+
+func parseQueryToFields(mem memory.Allocator, query string, queryLen, index int, status ParseStatus, rows uint64, allowMultipleTypes bool) ([]arrow.DataType, []arrow.Field, []arrow.Array, []uint64, int, error) {
+	switch status {
+	case Start:
+		for i := index; i < queryLen; i++ {
+			if query[i] == ' ' || query[i] == '\t' || query[i] == '\n' {
+				continue
+			} else if query[i] >= '0' && query[i] <= '9' {
+				parsedRows, rowEnd, err := parseRows(query, queryLen, i)
+				if err != nil {
+					return nil, nil, nil, nil, 0, err
+				}
+
+				columnEnd, err := expectOneColumn(query, queryLen, rowEnd)
+				if err != nil {
+					return nil, nil, nil, nil, 0, err
+				}
+				return parseQueryToFields(mem, query, queryLen, columnEnd, ExpectType, parsedRows, allowMultipleTypes)
+			} else {
+				return parseQueryToFields(mem, query, queryLen, i, ExpectType, 1, allowMultipleTypes)
+			}
+		}
+	case ExpectType:
+		types := make([]arrow.DataType, 0)
+		typeRows := make([]uint64, 0)
+		typeFields := make([]arrow.Field, 0)
+		typeArrays := make([]arrow.Array, 0)
+		currentType, typeField, typeArray, rowsForType, typeEnd, err := parseType(mem, query, queryLen, index, rows)
+		fmt.Printf("[debug:parseQueryToFields] currentType=%v, err=%v\n", currentType, err)
+		if err != nil {
+			if errors.Is(err, io.EOF) {
+				types = append(types, currentType)
+				typeRows = append(typeRows, rowsForType)
+				typeFields = append(typeFields, typeField)
+				typeArrays = append(typeArrays, typeArray)
+				return types, typeFields, typeArrays, typeRows, typeEnd, nil
+			}
+			return nil, nil, nil, nil, 0, err
+		}
+		types = append(types, currentType)
+		typeRows = append(typeRows, rowsForType)
+		typeFields = append(typeFields, typeField)
+		typeArrays = append(typeArrays, typeArray)
+		if allowMultipleTypes {
+			for {
+				fmt.Printf("[debug:expectOneComma] queryLen=%d, typeEnd=%d", queryLen, typeEnd)
+				commaEnd, err := expectOneComma(query, queryLen, typeEnd)
+				if err != nil {
+					if errors.Is(err, io.EOF) {
+						break
+					}
+					return nil, nil, nil, nil, 0, err
+				}
+
+				nextType, nextField, nextArray, nextRows, nextEnd, err := parseType(mem, query, queryLen, commaEnd, rows)
+				if err != nil {
+					if errors.Is(err, io.EOF) {
+						break
+					}
+					return nil, nil, nil, nil, 0, err
+				}
+				types = append(types, nextType)
+				typeRows = append(typeRows, nextRows)
+				typeFields = append(typeFields, nextField)
+				typeArrays = append(typeArrays, nextArray)
+				typeEnd = nextEnd
+			}
+			return types, typeFields, typeArrays, typeRows, typeEnd, nil
+		} else {
+			return types, typeFields, typeArrays, typeRows, typeEnd, nil
+		}
+	default:
+		return nil, nil, nil, nil, 0, adbc.Error{
+			Code: adbc.StatusInvalidArgument,
+			Msg:  fmt.Sprintf("[default] invalid query: `%s`", query),
+		}
+	}
+
+	return nil, nil, nil, nil, 0, adbc.Error{
+		Code: adbc.StatusInvalidArgument,
+		Msg:  fmt.Sprintf("[return] invalid query: `%s`", query),
+	}
+}
+
 func parseQuery(query string, innerRows int) ([]arrow.Field, []arrow.Array, int, error) {
+	mem := memory.NewCheckedAllocator(memory.NewGoAllocator())
+	currentTypes, currentFields, currentArrays, rowsForType, typeEnd, err := parseQueryToFields(mem, query, len(query), 0, Start, 1, true)
+	if err != nil {
+		if errors.Is(err, io.EOF) {
+			return nil, nil, 0, adbc.Error{
+				Code: adbc.StatusInvalidArgument,
+				Msg:  fmt.Sprintf("eof"),
+			}
+		}
+		return nil, nil, 0, adbc.Error{}
+	}
+	fmt.Printf("[parseQueryToFields] query: %s\n", query)
+	fmt.Printf("currentTypes: %v\n", currentTypes)
+	fmt.Printf("currentFields: %v\n", currentFields)
+	fmt.Printf("currentArrays: %v\n", currentArrays)
+	fmt.Printf("rowsForType: %v\n", rowsForType)
+	fmt.Printf("typeEnd: %v\n", typeEnd)
+
+	return currentFields, currentArrays, int(rowsForType[0]), nil
+
 	matches := rowsRegex.FindStringSubmatch(query)
 	rows := innerRows
 	rowsString := ""
@@ -188,7 +533,7 @@ func parseQuery(query string, innerRows int) ([]arrow.Field, []arrow.Array, int,
 			return nil, nil, -1, err
 		}
 	}
-	mem := memory.NewCheckedAllocator(memory.NewGoAllocator())
+
 	fields := make([]arrow.Field, 0)
 	fieldValues := make([]arrow.Array, 0)
 
@@ -212,37 +557,12 @@ func parseQuery(query string, innerRows int) ([]arrow.Field, []arrow.Array, int,
 			fields = append(fields, builder.field)
 			fieldValues = append(fieldValues, builder.builder(mem, rows))
 		} else if strings.HasPrefix(t, "list") {
-			if t == "list" {
-				fields = append(fields, arrow.Field{Name: "list", Type: arrow.ListOf(arrow.PrimitiveTypes.Int8)})
-				fieldValues = append(fieldValues, mockArray(mem, rows, arrow.PrimitiveTypes.Int8))
-			} else if listMatch := listRegex.FindStringSubmatch(t); len(listMatch) > 1 {
-				listLen := 1
-				if lenStr := listMatch[listRegex.SubexpIndex("len")]; len(lenStr) > 0 {
-					listLen, _ = strconv.Atoi(lenStr)
-				}
-				elmTypeStr := listMatch[listRegex.SubexpIndex("typename")]
-				if innerType, ok := availableTypes[elmTypeStr]; ok {
-					fields = append(fields, arrow.Field{Name: "list", Type: arrow.ListOf(innerType.field.Type)})
-					fieldValues = append(fieldValues, mockArray(mem, listLen, innerType.field.Type))
-				} else {
-					// array.NewListBuilder(mem,)
-					// innerFields, innerValues, _, err := parseQuery(elmTypeStr,listLen)
-					// if err != nil {
-					// 	return nil, nil, -1, err
-					// }
-					// fields = append(fields, arrow.Field{Name: "list", Type: arrow.ListOf(innerFields[0].Type)})
-					// fieldValues = append(fieldValues, mockList(innerValues[0]))
-					return nil, nil, -1, adbc.Error{
-						Code: adbc.StatusInvalidArgument,
-						Msg:  fmt.Sprintf("unknown type %s", t),
-					}
-				}
-			} else {
-				return nil, nil, -1, adbc.Error{
-					Code: adbc.StatusInvalidArgument,
-					Msg:  fmt.Sprintf("unknown type %s", t),
-				}
+			listType, innerValue, _, err := parseListType(t, mem)
+			if err != nil {
+				return nil, nil, -1, err
 			}
+			fields = append(fields, arrow.Field{Name: "list", Type: listType})
+			fieldValues = append(fieldValues, innerValue)
 		} else if strings.HasPrefix(t, "struct") {
 			fmt.Println("oh it's a struct!")
 			structMatch := structRegex.FindStringSubmatch(t)

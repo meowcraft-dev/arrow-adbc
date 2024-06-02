@@ -23,7 +23,6 @@ import (
 	"io"
 	"regexp"
 	"strconv"
-	"strings"
 	"sync/atomic"
 
 	"github.com/apache/arrow-adbc/go/adbc"
@@ -180,87 +179,15 @@ var (
 			field:   arrow.Field{Name: "sample_list_view", Type: arrow.ListViewOf(arrow.PrimitiveTypes.Int32)},
 			builder: mockSampleListView,
 		},
+		"sample_large_list_view": {
+			field: arrow.Field{
+				Name: "sample_large_list_view",
+				Type: arrow.LargeListViewOf(arrow.PrimitiveTypes.Int32),
+			},
+			builder: mockSampleLargeListView,
+		},
 	}
 )
-
-func parseListType(query string, mem memory.Allocator) (arrow.DataType, arrow.Array, int, error) {
-	rows := 1
-	matches := rowsRegex.FindStringSubmatch(query)
-	rowsString := ""
-	if len(matches) == 2 {
-		var err error
-		rowsString = matches[rowsRegex.SubexpIndex("rows")]
-		if rows, err = strconv.Atoi(rowsString); err != nil {
-			return nil, nil, -1, err
-		}
-	}
-	query = query[len(rowsString):]
-	if query[0] == ':' {
-		query = query[1:]
-	}
-
-	var t string
-	requestTypes := strings.SplitN(query, ",", 2)
-
-	if len(requestTypes) == 2 {
-		t = requestTypes[0]
-		query = requestTypes[1]
-	} else if len(requestTypes) == 1 {
-		t = requestTypes[0]
-		query = ""
-	}
-
-	if builder, ok := availableTypes[t]; ok {
-		return builder.field.Type, builder.builder(mem, rows), rows, nil
-	} else if strings.HasPrefix(t, "list") {
-		if len(t) > 4 {
-			expected := 0
-			startIndex := -1
-			endIndex := -1
-			for i := 4; i < len(t); i++ {
-				if t[i] == '<' {
-					if startIndex == -1 {
-						startIndex = i
-					}
-					expected += 1
-				} else if t[i] == '>' {
-					expected -= 1
-					if expected == 0 {
-						endIndex = i
-						break
-					}
-				}
-			}
-
-			if expected != 0 {
-				return nil, nil, rows, adbc.Error{
-					Code: adbc.StatusInvalidArgument,
-					Msg:  fmt.Sprintf("unmatched brackets in query: %s", query),
-				}
-			}
-
-			if startIndex != -1 && endIndex != -1 {
-
-			}
-			fmt.Printf("list inner type: %s\n", t[startIndex:endIndex])
-			innerType, innerValue, _, err := parseListType(t[5:len(t)-1], mem)
-			if err != nil {
-				return nil, nil, rows, err
-			}
-			return arrow.ListOf(innerType), innerValue, rows, nil
-		} else {
-			return nil, nil, rows, adbc.Error{
-				Code: adbc.StatusInvalidArgument,
-				Msg:  fmt.Sprintf("invalid type: `%s`", t),
-			}
-		}
-	} else {
-		return nil, nil, rows, adbc.Error{
-			Code: adbc.StatusInvalidArgument,
-			Msg:  fmt.Sprintf("type `%s` not supported yet", t),
-		}
-	}
-}
 
 type ParseStatus int
 
@@ -466,7 +393,7 @@ func parseQueryToFields(mem memory.Allocator, query string, queryLen, index int,
 		typeArrays = append(typeArrays, typeArray)
 		if allowMultipleTypes {
 			for {
-				fmt.Printf("[debug:expectOneComma] queryLen=%d, typeEnd=%d", queryLen, typeEnd)
+				//fmt.Printf("[debug:expectOneComma] queryLen=%d, typeEnd=%d", queryLen, typeEnd)
 				commaEnd, err := expectOneComma(query, queryLen, typeEnd)
 				if err != nil {
 					if errors.Is(err, io.EOF) {

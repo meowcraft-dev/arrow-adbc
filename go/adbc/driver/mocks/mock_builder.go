@@ -18,7 +18,6 @@
 package mocks
 
 import (
-	"fmt"
 	"math"
 
 	"github.com/apache/arrow/go/v17/arrow"
@@ -536,7 +535,6 @@ func mockMonthDayNanoInterval(mem memory.Allocator, rows int) arrow.Array {
 }
 
 func mockSampleListView(mem memory.Allocator, rows int) arrow.Array {
-	fmt.Printf("mockSampleListView\n")
 	ib := array.NewListViewBuilder(mem, arrow.PrimitiveTypes.Int32)
 	defer ib.Release()
 	// Example layout: ``ListView<Int8>`` Array, from
@@ -571,16 +569,51 @@ func mockSampleListView(mem memory.Allocator, rows int) arrow.Array {
 	// | Bytes 0-6                    | Bytes 7-63            |
 	// |------------------------------|-----------------------|
 	// | 0, -127, 127, 50, 12, -7, 25 | unspecified (padding) |
-	values := []int32{0, -127, 127, 50, 12, -7, 25}
-	valid := []bool{true, true, true, true, true, true, true}
-	ib.ValueBuilder().(*array.Int32Builder).AppendValues(values, valid)
 
-	offsets := []int32{4, 7, 0, 0, 3}
-	sizes := []int32{3, 0, 4, 0, 2}
-	valid = []bool{true, false, true, true, true}
+	const listSize = 5
+	offsets := make([]int32, rows)
+	sizes := make([]int32, rows)
+	valid := make([]bool, rows)
+	values := make([]int32, rows*3+2)
+	valuesValid := make([]bool, rows*3+2)
+	for i := 0; i < rows*3+2; i++ {
+		values[i] = int32(i)
+		valuesValid[i] = true
+	}
+	for i := 0; i < rows; i++ {
+		offsets[i] = int32(i * 3)
+		sizes[i] = listSize
+		valid[i] = i%2 == 0
+	}
 	ib.AppendValuesWithSizes(offsets, sizes, valid)
+	ib.ValueBuilder().(*array.Int32Builder).AppendValues(values, valuesValid)
 
 	return ib.NewListViewArray()
+}
+
+func mockSampleLargeListView(mem memory.Allocator, rows int) arrow.Array {
+	ib := array.NewLargeListViewBuilder(mem, arrow.PrimitiveTypes.Int32)
+	defer ib.Release()
+
+	const listSize = 5
+	offsets := make([]int64, rows)
+	sizes := make([]int64, rows)
+	valid := make([]bool, rows)
+	values := make([]int32, rows*3+2)
+	valuesValid := make([]bool, rows*3+2)
+	for i := 0; i < rows*3+2; i++ {
+		values[i] = int32(i)
+		valuesValid[i] = true
+	}
+	for i := 0; i < rows; i++ {
+		offsets[i] = int64(i * 3)
+		sizes[i] = listSize
+		valid[i] = i%2 == 0
+	}
+	ib.AppendValuesWithSizes(offsets, sizes, valid)
+	ib.ValueBuilder().(*array.Int32Builder).AppendValues(values, valuesValid)
+
+	return ib.NewLargeListViewArray()
 }
 
 // func mockList(mem memory.Allocator, rows, length int64, innerList arrow.Array) arrow.Array {

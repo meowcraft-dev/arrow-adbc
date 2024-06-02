@@ -18,6 +18,7 @@
 package mocks
 
 import (
+	"fmt"
 	"math"
 
 	"github.com/apache/arrow/go/v17/arrow"
@@ -532,6 +533,54 @@ func mockMonthDayNanoInterval(mem memory.Allocator, rows int) arrow.Array {
 	defer ib.Release()
 	fillIntervalMonthDayNanoValue(ib.AppendValues, rows, 0)
 	return ib.NewMonthDayNanoIntervalArray()
+}
+
+func mockSampleListView(mem memory.Allocator, rows int) arrow.Array {
+	fmt.Printf("mockSampleListView\n")
+	ib := array.NewListViewBuilder(mem, arrow.PrimitiveTypes.Int32)
+	defer ib.Release()
+	// Example layout: ``ListView<Int8>`` Array, from
+	// https://arrow.apache.org/docs/format/Columnar.html
+	//
+	// [[12, -7, 25], null, [0, -127, 127, 50], [], [50, 12]]
+	//
+	// * Length: 4, Null count: 1
+	// * Validity bitmap buffer:
+	//
+	// | Byte 0 (validity bitmap) | Bytes 1-63            |
+	// |--------------------------|-----------------------|
+	// | 00011101                 | 0 (padding)           |
+	//
+	// * Offsets buffer (int32)
+	//
+	// | Bytes 0-3  | Bytes 4-7   | Bytes 8-11  | Bytes 12-15 | Bytes 16-19 | Bytes 20-63           |
+	// |------------|-------------|-------------|-------------|-------------|-----------------------|
+	// | 4          | 7           | 0           | 0           | 3           | unspecified (padding) |
+	//
+	// * Sizes buffer (int32)
+	//
+	// | Bytes 0-3  | Bytes 4-7   | Bytes 8-11  | Bytes 12-15 | Bytes 16-19 | Bytes 20-63           |
+	// |------------|-------------|-------------|-------------|-------------|-----------------------|
+	// | 3          | 0           | 4           | 0           | 2           | unspecified (padding) |
+	//
+	// * Values array (Int8Array):
+	// * Length: 7,  Null count: 0
+	// * Validity bitmap buffer: Not required
+	// * Values buffer (int8)
+	//
+	// | Bytes 0-6                    | Bytes 7-63            |
+	// |------------------------------|-----------------------|
+	// | 0, -127, 127, 50, 12, -7, 25 | unspecified (padding) |
+	values := []int32{0, -127, 127, 50, 12, -7, 25}
+	valid := []bool{true, true, true, true, true, true, true}
+	ib.ValueBuilder().(*array.Int32Builder).AppendValues(values, valid)
+
+	offsets := []int32{4, 7, 0, 0, 3}
+	sizes := []int32{3, 0, 4, 0, 2}
+	valid = []bool{true, false, true, true, true}
+	ib.AppendValuesWithSizes(offsets, sizes, valid)
+
+	return ib.NewListViewArray()
 }
 
 // func mockList(mem memory.Allocator, rows, length int64, innerList arrow.Array) arrow.Array {

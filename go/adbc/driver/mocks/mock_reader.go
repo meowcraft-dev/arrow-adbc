@@ -175,6 +175,10 @@ var (
 			field:   arrow.Field{Name: "interval_monthdaynano", Type: arrow.FixedWidthTypes.MonthDayNanoInterval},
 			builder: mockMonthDayNanoInterval,
 		},
+		"sample_list": {
+			field:   arrow.Field{Name: "sample_list", Type: arrow.ListOf(arrow.PrimitiveTypes.Int32)},
+			builder: mockSampleList,
+		},
 		"sample_list_view": {
 			field:   arrow.Field{Name: "sample_list_view", Type: arrow.ListViewOf(arrow.PrimitiveTypes.Int32)},
 			builder: mockSampleListView,

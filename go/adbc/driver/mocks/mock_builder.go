@@ -534,6 +534,50 @@ func mockMonthDayNanoInterval(mem memory.Allocator, rows int) arrow.Array {
 	return ib.NewMonthDayNanoIntervalArray()
 }
 
+func mockSampleList(mem memory.Allocator, rows int) arrow.Array {
+	ib := array.NewListBuilder(mem, arrow.PrimitiveTypes.Int32)
+	defer ib.Release()
+
+	const subListLength = 2
+	// this should fill `rows/3*subListLength` int32 in the value array
+	// rows = 1, length = 2
+	// rows = 2, length = 2
+	// rows = 3, length = 2
+	// rows = 4, length = 4
+	valueBuilder := ib.ValueBuilder().(*array.Int32Builder)
+	fillValue(valueBuilder.AppendValues, max(int(math.Ceil(float64(rows)/3.0)), 1)*subListLength, 0)
+
+	// let's make every 2 of them as a sub-list
+	// with `nil` and `[]` in between
+	// when `rows == 4`, we're expecting the following results
+	//   [[0,1], nil, [], [2,3]]
+	// therefore, the offsets should be
+	//   [0, 2, 2, 2, 4]
+	offsets := make([]int32, rows+1)
+	valid := make([]bool, rows)
+	offset := int32(0)
+	for i := 0; i < rows+1; i++ {
+		offsets[i] = offset
+		rem := i % 3
+		switch rem {
+		case 0:
+			offset += subListLength
+			fallthrough
+		case 2:
+			if i < rows {
+				valid[i] = true
+			}
+		case 1:
+			if i < rows {
+				valid[i] = false
+			}
+		}
+	}
+	ib.AppendValues(offsets, valid)
+
+	return ib.NewListArray()
+}
+
 func mockSampleListView(mem memory.Allocator, rows int) arrow.Array {
 	ib := array.NewListViewBuilder(mem, arrow.PrimitiveTypes.Int32)
 	defer ib.Release()

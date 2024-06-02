@@ -309,15 +309,15 @@ func parseType(mem memory.Allocator, query string, queryLen, index int, rows uin
 		return nil, arrow.Field{}, nil, 0, 0, io.EOF
 	}
 
-	typeEnd := -1
+	typeEnd := -2
 	for j := index + 1; j < queryLen; j++ {
 		if (query[j] >= '0' && query[j] <= '9') || (query[j] >= 'a' && query[j] <= 'z') || (query[j] >= 'A' && query[j] <= 'Z') {
-			continue
-		} else {
 			typeEnd = j
+		} else {
 			break
 		}
 	}
+	typeEnd += 1
 
 	if typeEnd == -1 {
 		return nil, arrow.Field{}, nil, 0, 0, adbc.Error{
@@ -445,6 +445,7 @@ func parseQueryToFields(mem memory.Allocator, query string, queryLen, index int,
 		typeRows := make([]uint64, 0)
 		typeFields := make([]arrow.Field, 0)
 		typeArrays := make([]arrow.Array, 0)
+		fmt.Printf("[debug:parseQueryToFields] query=%s\n", query)
 		currentType, typeField, typeArray, rowsForType, typeEnd, err := parseType(mem, query, queryLen, index, rows)
 		fmt.Printf("[debug:parseQueryToFields] currentType=%v, err=%v\n", currentType, err)
 		if err != nil {
@@ -522,73 +523,6 @@ func parseQuery(query string, innerRows int) ([]arrow.Field, []arrow.Array, int,
 	fmt.Printf("typeEnd: %v\n", typeEnd)
 
 	return currentFields, currentArrays, int(rowsForType[0]), nil
-
-	matches := rowsRegex.FindStringSubmatch(query)
-	rows := innerRows
-	rowsString := ""
-	if len(matches) == 2 {
-		var err error
-		rowsString = matches[rowsRegex.SubexpIndex("rows")]
-		if rows, err = strconv.Atoi(rowsString); err != nil {
-			return nil, nil, -1, err
-		}
-	}
-
-	fields := make([]arrow.Field, 0)
-	fieldValues := make([]arrow.Array, 0)
-
-	query = query[len(rowsString):]
-	if query[0] == ':' {
-		query = query[1:]
-	}
-
-	var t string
-	for {
-		requestTypes := strings.SplitN(query, ",", 2)
-
-		if len(requestTypes) == 2 {
-			t = requestTypes[0]
-			query = requestTypes[1]
-		} else if len(requestTypes) == 1 {
-			t = requestTypes[0]
-			query = ""
-		}
-		if builder, ok := availableTypes[t]; ok {
-			fields = append(fields, builder.field)
-			fieldValues = append(fieldValues, builder.builder(mem, rows))
-		} else if strings.HasPrefix(t, "list") {
-			listType, innerValue, _, err := parseListType(t, mem)
-			if err != nil {
-				return nil, nil, -1, err
-			}
-			fields = append(fields, arrow.Field{Name: "list", Type: listType})
-			fieldValues = append(fieldValues, innerValue)
-		} else if strings.HasPrefix(t, "struct") {
-			fmt.Println("oh it's a struct!")
-			structMatch := structRegex.FindStringSubmatch(t)
-			fmt.Printf("structMatch: %v\n", structMatch)
-			if structMatch := structRegex.FindStringSubmatch(t); structMatch != nil {
-				structString := strings.Split(structMatch[structRegex.SubexpIndex("struct")], ",")
-				fmt.Printf("structString: %v\n", structString)
-				innerTypeFields := make([]arrow.Field, 0)
-				for _, innerType := range structString {
-					innerTypeFields = append(innerTypeFields, availableTypes[innerType].field)
-				}
-				fields = append(fields, arrow.Field{Name: "struct", Type: arrow.StructOf(innerTypeFields...)})
-				fieldValues = append(fieldValues, mockStruct(mem, rows, arrow.StructOf(innerTypeFields...)))
-			} else {
-				return nil, nil, -1, adbc.Error{
-					Code: adbc.StatusInvalidArgument,
-					Msg:  fmt.Sprintf("unknown type %s", t),
-				}
-			}
-		}
-		if len(query) == 0 {
-			break
-		}
-	}
-
-	return fields, fieldValues, rows, nil
 }
 
 // NewMockReader Creates a mockReader according to the query.

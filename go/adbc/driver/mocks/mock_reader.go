@@ -505,7 +505,7 @@ func parseQueryToFields(mem memory.Allocator, query string, queryLen, index int,
 
 func parseQuery(query string, innerRows int) ([]arrow.Field, []arrow.Array, int, error) {
 	mem := memory.NewCheckedAllocator(memory.NewGoAllocator())
-	currentTypes, currentFields, currentArrays, rowsForType, typeEnd, err := parseQueryToFields(mem, query, len(query), 0, Start, 1, true)
+	_, currentFields, currentArrays, rowsForType, _, err := parseQueryToFields(mem, query, len(query), 0, Start, 1, true)
 	if err != nil {
 		if errors.Is(err, io.EOF) {
 			return nil, nil, 0, adbc.Error{
@@ -515,12 +515,12 @@ func parseQuery(query string, innerRows int) ([]arrow.Field, []arrow.Array, int,
 		}
 		return nil, nil, 0, adbc.Error{}
 	}
-	fmt.Printf("[parseQueryToFields] query: %s\n", query)
-	fmt.Printf("currentTypes: %v\n", currentTypes)
-	fmt.Printf("currentFields: %v\n", currentFields)
-	fmt.Printf("currentArrays: %v\n", currentArrays)
-	fmt.Printf("rowsForType: %v\n", rowsForType)
-	fmt.Printf("typeEnd: %v\n", typeEnd)
+	//fmt.Printf("[parseQueryToFields] query: %s\n", query)
+	//fmt.Printf("currentTypes: %v\n", currentTypes)
+	//fmt.Printf("currentFields: %v\n", currentFields)
+	//fmt.Printf("currentArrays: %v\n", currentArrays)
+	//fmt.Printf("rowsForType: %v\n", rowsForType)
+	//fmt.Printf("typeEnd: %v\n", typeEnd)
 
 	return currentFields, currentArrays, int(rowsForType[0]), nil
 }

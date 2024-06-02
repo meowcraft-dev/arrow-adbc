@@ -176,6 +176,10 @@ var (
 			field:   arrow.Field{Name: "interval_monthdaynano", Type: arrow.FixedWidthTypes.MonthDayNanoInterval},
 			builder: mockMonthDayNanoInterval,
 		},
+		"sample_list_view": {
+			field:   arrow.Field{Name: "sample_list_view", Type: arrow.ListViewOf(arrow.PrimitiveTypes.Int32)},
+			builder: mockSampleListView,
+		},
 	}
 )
 
@@ -311,7 +315,7 @@ func parseType(mem memory.Allocator, query string, queryLen, index int, rows uin
 
 	typeEnd := -2
 	for j := index + 1; j < queryLen; j++ {
-		if (query[j] >= '0' && query[j] <= '9') || (query[j] >= 'a' && query[j] <= 'z') || (query[j] >= 'A' && query[j] <= 'Z') {
+		if (query[j] >= '0' && query[j] <= '9') || (query[j] >= 'a' && query[j] <= 'z') || (query[j] >= 'A' && query[j] <= 'Z') || query[j] == '_' {
 			typeEnd = j
 		} else {
 			break
@@ -445,9 +449,7 @@ func parseQueryToFields(mem memory.Allocator, query string, queryLen, index int,
 		typeRows := make([]uint64, 0)
 		typeFields := make([]arrow.Field, 0)
 		typeArrays := make([]arrow.Array, 0)
-		fmt.Printf("[debug:parseQueryToFields] query=%s\n", query)
 		currentType, typeField, typeArray, rowsForType, typeEnd, err := parseType(mem, query, queryLen, index, rows)
-		fmt.Printf("[debug:parseQueryToFields] currentType=%v, err=%v\n", currentType, err)
 		if err != nil {
 			if errors.Is(err, io.EOF) {
 				types = append(types, currentType)

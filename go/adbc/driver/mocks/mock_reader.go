@@ -254,6 +254,10 @@ var (
 			},
 			builder: mockSampleSparseUnion,
 		},
+		"null": {
+			field:   arrow.Field{Name: "null", Type: arrow.Null},
+			builder: mockNull,
+		},
 	}
 )
 

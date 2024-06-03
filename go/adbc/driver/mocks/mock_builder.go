@@ -889,6 +889,10 @@ func mockSampleSparseUnion(mem memory.Allocator, rows int) arrow.Array {
 	return ib.NewSparseUnionArray()
 }
 
+func mockNull(mem memory.Allocator, rows int) arrow.Array {
+	return array.NewNull(rows)
+}
+
 // func mockList(mem memory.Allocator, rows, length int64, innerList arrow.Array) arrow.Array {
 // 	lb := array.NewListBuilder(mem, arrow.ListOf(innerList.DataType()))
 // 	defer lb.Release()

@@ -752,6 +752,31 @@ func mockSampleRunEndEncodedArray(mem memory.Allocator, rows int) arrow.Array {
 
 	return ib.NewRunEndEncodedArray()
 }
+
+func mockSampleDictionaryEncodedArray(mem memory.Allocator, rows int) arrow.Array {
+	ib := array.NewDictionaryBuilder(mem,&arrow.DictionaryType{
+		IndexType: arrow.PrimitiveTypes.Int32,
+		ValueType: arrow.BinaryTypes.String,
+	}).(*array.BinaryDictionaryBuilder)
+
+	ib.AppendString("hello")
+	ib.AppendString("goodbye")
+
+	values := make([]int, rows)
+	for i := 0; i < rows; i++ {
+		values[i] = i%2
+	}
+
+	valid := make([]bool, rows)
+	for i := 0; i < rows; i++ {
+		valid[i] = true
+	}
+	
+	ib.AppendIndices(values,valid)
+
+	defer ib.Release()
+	return ib.NewDictionaryArray()
+}
 // func mockList(mem memory.Allocator, rows, length int64, innerList arrow.Array) arrow.Array {
 // 	lb := array.NewListBuilder(mem, arrow.ListOf(innerList.DataType()))
 // 	defer lb.Release()

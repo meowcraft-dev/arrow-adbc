@@ -197,6 +197,20 @@ var (
 			},
 			builder: mockSampleLargeListView,
 		},
+		"sample_fixed_size_list": {
+			field: arrow.Field{
+				Name: "sample_fixed_size_list",
+				Type: arrow.FixedSizeListOf(3, arrow.PrimitiveTypes.Int32),
+			},
+			builder: mockSampleFixedSizeList,
+		},
+		"sample_nested_fixed_size_list": {
+			field: arrow.Field{
+				Name: "sample_nested_fixed_size_list",
+				Type: arrow.FixedSizeListOf(3,arrow.FixedSizeListOf(3, arrow.PrimitiveTypes.Int32)),
+			},
+			builder: mockSampleNestedFixedSizeList,
+		},
 		"sample_run_end_encoded_array": {
 			field: arrow.Field{
 				Name: "sample_run_end_encoded_array",

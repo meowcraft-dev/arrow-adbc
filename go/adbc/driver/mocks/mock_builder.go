@@ -728,6 +728,58 @@ func mockSampleLargeListView(mem memory.Allocator, rows int) arrow.Array {
 	return ib.NewLargeListViewArray()
 }
 
+func mockSampleFixedSizeList(mem memory.Allocator, rows int) arrow.Array {
+	fixedSize := int32(3)
+	ib := array.NewFixedSizeListBuilder(mem, fixedSize, arrow.PrimitiveTypes.Int32)
+	defer ib.Release()
+
+	values := make([]int32, fixedSize)
+	valid := make([]bool, fixedSize)
+
+	increment := 1
+
+
+	for i := 0; i < rows; i++ {
+		for j := 0; j < int(fixedSize); j++ {
+			values[j] = int32(increment)
+			valid[j] = j%2 == 0
+			increment++
+		}
+		ib.Append(true)
+		ib.ValueBuilder().(*array.Int32Builder).AppendValues(values, valid)
+	}
+
+	return ib.NewListArray()
+}
+
+func mockSampleNestedFixedSizeList(mem memory.Allocator, rows int) arrow.Array {
+	ib := array.NewFixedSizeListBuilder(mem, 3, arrow.FixedSizeListOf(3, arrow.PrimitiveTypes.Int32))
+	defer ib.Release()
+
+	innerBuilder := ib.ValueBuilder().(*array.FixedSizeListBuilder)
+	intBuilder := innerBuilder.ValueBuilder().(*array.Int32Builder)
+
+	values := make([]int32, 3)
+	valid := make([]bool, 3)
+
+	increment := 1
+
+	for i := 0; i < rows; i++ {
+		for j := 0; j < 3; j++ {
+			values[j] = int32(increment)
+			valid[j] = j%2 == 0
+			increment++
+		}
+		ib.Append(true)
+		for j := 0; j < 3; j++ {
+			innerBuilder.Append(true)
+			intBuilder.AppendValues(values, valid)
+		}
+	}
+
+	return ib.NewListArray()
+}
+
 func mockSampleRunEndEncodedArray(mem memory.Allocator, rows int) arrow.Array {
 	ib := array.NewRunEndEncodedBuilder(mem, arrow.PrimitiveTypes.Int32,arrow.PrimitiveTypes.Float32)
 	defer ib.Release()

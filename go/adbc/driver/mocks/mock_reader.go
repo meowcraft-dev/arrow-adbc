@@ -204,6 +204,16 @@ var (
 			},
 			builder: mockSampleRunEndEncodedArray,
 		},
+		"sample_dictionary_encoded_array": {
+			field: arrow.Field{
+				Name: "sample_dictionary_encoded_array",
+				Type: &arrow.DictionaryType{
+					IndexType: arrow.PrimitiveTypes.Int32,
+					ValueType: arrow.BinaryTypes.String,
+				},
+			},
+			builder: mockSampleDictionaryEncodedArray,
+		},
 	}
 )
 

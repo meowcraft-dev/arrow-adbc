@@ -727,7 +727,7 @@ func mockSampleLargeListView(mem memory.Allocator, rows int) arrow.Array {
 	return ib.NewLargeListViewArray()
 }
 
-func mockSampleRunEndEncoding(mem memory.Allocator, rows int) arrow.Array {
+func mockSampleRunEndEncodedArray(mem memory.Allocator, rows int) arrow.Array {
 	ib := array.NewRunEndEncodedBuilder(mem, arrow.PrimitiveTypes.Int32,arrow.PrimitiveTypes.Float32)
 	defer ib.Release()
 

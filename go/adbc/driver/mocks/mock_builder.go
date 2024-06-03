@@ -18,6 +18,7 @@
 package mocks
 
 import (
+	"fmt"
 	"math"
 
 	"github.com/apache/arrow/go/v17/arrow"
@@ -777,6 +778,65 @@ func mockSampleDictionaryEncodedArray(mem memory.Allocator, rows int) arrow.Arra
 	defer ib.Release()
 	return ib.NewDictionaryArray()
 }
+
+func mockSampleDenseUnion(mem memory.Allocator, rows int) arrow.Array {
+
+	intBuilder := array.NewInt32Builder(mem)
+	defer intBuilder.Release()
+	strBuilder := array.NewStringBuilder(mem)
+	defer strBuilder.Release()
+
+	ib := array.NewDenseUnionBuilderWithBuilders(mem, arrow.DenseUnionOf(
+		[]arrow.Field{
+			{Name: "a", Type: arrow.PrimitiveTypes.Int32},
+			{Name: "b", Type: arrow.BinaryTypes.String},
+		},
+		[]arrow.UnionTypeCode{0, 1},
+	), []array.Builder{ intBuilder,strBuilder })
+
+	defer ib.Release()
+
+	for i := 0; i < rows; i++ {
+		ib.Append(0)
+		intBuilder.Append(int32(i))
+
+		ib.Append(1)
+		strBuilder.Append(fmt.Sprint("str%d",i))
+	}
+
+	return ib.NewDenseUnionArray()
+}
+
+func mockSampleSparseUnion(mem memory.Allocator, rows int) arrow.Array {
+
+	intBuilder := array.NewInt32Builder(mem)
+	defer intBuilder.Release()
+	strBuilder := array.NewStringBuilder(mem)
+	defer strBuilder.Release()
+
+	ib := array.NewSparseUnionBuilderWithBuilders(mem, arrow.SparseUnionOf(
+		[]arrow.Field{
+			{Name: "a", Type: arrow.PrimitiveTypes.Int32},
+			{Name: "b", Type: arrow.BinaryTypes.String},
+		},
+		[]arrow.UnionTypeCode{0, 1},
+	), []array.Builder{ intBuilder,strBuilder })
+
+	defer ib.Release()
+
+	for i := 0; i < rows; i++ {
+		ib.Append(0)
+		intBuilder.Append(int32(i))
+		strBuilder.AppendNull()
+
+		ib.Append(1)
+		strBuilder.Append(fmt.Sprint("str%d",i))
+		intBuilder.AppendNull()
+	}
+
+	return ib.NewSparseUnionArray()
+}
+
 // func mockList(mem memory.Allocator, rows, length int64, innerList arrow.Array) arrow.Array {
 // 	lb := array.NewListBuilder(mem, arrow.ListOf(innerList.DataType()))
 // 	defer lb.Release()

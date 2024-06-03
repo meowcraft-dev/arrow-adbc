@@ -214,6 +214,32 @@ var (
 			},
 			builder: mockSampleDictionaryEncodedArray,
 		},
+		"sample_dense_union": {
+			field: arrow.Field{
+				Name: "sample_dense_union",
+				Type: arrow.DenseUnionOf(
+					[]arrow.Field{
+						{Name: "a", Type: arrow.PrimitiveTypes.Int32},
+						{Name: "b", Type: arrow.BinaryTypes.String},
+					},
+					[]arrow.UnionTypeCode{0, 1},
+				),
+			},
+			builder: mockSampleDenseUnion,
+		},
+		"sample_sparse_union": {
+			field: arrow.Field{
+				Name: "sample_sparse_union",
+				Type: arrow.SparseUnionOf(
+					[]arrow.Field{
+						{Name: "a", Type: arrow.PrimitiveTypes.Int32},
+						{Name: "b", Type: arrow.BinaryTypes.String},
+					},
+					[]arrow.UnionTypeCode{0, 1},
+				),
+			},
+			builder: mockSampleSparseUnion,
+		},
 	}
 )
 

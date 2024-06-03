@@ -197,12 +197,12 @@ var (
 			},
 			builder: mockSampleLargeListView,
 		},
-		"sample_run_end_encoding": {
+		"sample_run_end_encoded_array": {
 			field: arrow.Field{
-				Name: "sample_run_end_encoding",
+				Name: "sample_run_end_encoded_array",
 				Type: arrow.RunEndEncodedOf(arrow.PrimitiveTypes.Int32, arrow.PrimitiveTypes.Float32),
 			},
-			builder: mockSampleRunEndEncoding,
+			builder: mockSampleRunEndEncodedArray,
 		},
 	}
 )

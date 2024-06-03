@@ -727,6 +727,31 @@ func mockSampleLargeListView(mem memory.Allocator, rows int) arrow.Array {
 	return ib.NewLargeListViewArray()
 }
 
+func mockSampleRunEndEncoding(mem memory.Allocator, rows int) arrow.Array {
+	ib := array.NewRunEndEncodedBuilder(mem, arrow.PrimitiveTypes.Int32,arrow.PrimitiveTypes.Float32)
+	defer ib.Release()
+
+	runs := make([]uint64, rows)
+	for i := 0; i < rows; i++ {
+		runs[i] = uint64(i)
+	}
+
+	values := make([]float32, rows)
+	for i := 0; i < rows; i++ {
+		values[i] = float32(i+1)
+	}
+
+	valid:= make([]bool, rows)
+
+	for i := 0; i < rows; i++ {
+		valid[i] = i%2 == 0
+	}
+
+	ib.AppendRuns(runs)
+	ib.ValueBuilder().(*array.Float32Builder).AppendValues(values,valid)
+
+	return ib.NewRunEndEncodedArray()
+}
 // func mockList(mem memory.Allocator, rows, length int64, innerList arrow.Array) arrow.Array {
 // 	lb := array.NewListBuilder(mem, arrow.ListOf(innerList.DataType()))
 // 	defer lb.Release()

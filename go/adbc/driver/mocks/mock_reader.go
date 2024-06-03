@@ -21,7 +21,6 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"regexp"
 	"strconv"
 	"sync/atomic"
 
@@ -45,10 +44,6 @@ type typeBuilder struct {
 }
 
 var (
-	rowsRegex = regexp.MustCompile(`^(?P<rows>\d+)[\s]*:`)
-	//listRegex   = regexp.MustCompile(`^list[\s]*<[\s]*(?P<len>\d*):?(?P<typename>.+)>`)
-	structRegex = regexp.MustCompile(`^struct\<(?P<struct>.+)\>`)
-
 	// https://arrow.apache.org/docs/format/CDataInterface.html
 	availableTypes = map[string]typeBuilder{
 		"int8": {
@@ -178,6 +173,18 @@ var (
 		"sample_list": {
 			field:   arrow.Field{Name: "sample_list", Type: arrow.ListOf(arrow.PrimitiveTypes.Int32)},
 			builder: mockSampleList,
+		},
+		"sample_list_with_struct": {
+			field: arrow.Field{Name: "sample_list_with_struct", Type: arrow.ListOf(arrow.StructOf(
+				arrow.Field{Name: "start_time", Type: arrow.FixedWidthTypes.Timestamp_s},
+				arrow.Field{Name: "end_time", Type: arrow.FixedWidthTypes.Timestamp_s},
+				arrow.Field{Name: "data_points", Type: arrow.PrimitiveTypes.Int32},
+			))},
+			builder: mockSampleListWithStruct,
+		},
+		"sample_nested_list": {
+			field:   arrow.Field{Name: "sample_nested_list", Type: arrow.ListOf(arrow.ListOf(arrow.PrimitiveTypes.Int32))},
+			builder: mockSampleNestedList,
 		},
 		"sample_list_view": {
 			field:   arrow.Field{Name: "sample_list_view", Type: arrow.ListViewOf(arrow.PrimitiveTypes.Int32)},

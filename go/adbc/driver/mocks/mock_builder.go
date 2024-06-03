@@ -578,41 +578,108 @@ func mockSampleList(mem memory.Allocator, rows int) arrow.Array {
 	return ib.NewListArray()
 }
 
+func mockSampleListWithStruct(mem memory.Allocator, rows int) arrow.Array {
+	ib := array.NewListBuilder(mem, arrow.StructOf(
+		arrow.Field{Name: "start_time", Type: arrow.FixedWidthTypes.Timestamp_s},
+		arrow.Field{Name: "end_time", Type: arrow.FixedWidthTypes.Timestamp_s},
+		arrow.Field{Name: "data_points", Type: arrow.PrimitiveTypes.Int32},
+	))
+	defer ib.Release()
+
+	structBuilder := ib.ValueBuilder().(*array.StructBuilder)
+	startTimeBuilder := structBuilder.FieldBuilder(0).(*array.TimestampBuilder)
+	endTimeBuilder := structBuilder.FieldBuilder(1).(*array.TimestampBuilder)
+	dataPointsBuilder := structBuilder.FieldBuilder(2).(*array.Int32Builder)
+
+	fillValue(startTimeBuilder.AppendValues, rows, 0)
+	fillValue(endTimeBuilder.AppendValues, rows, 100)
+	fillValue(dataPointsBuilder.AppendValues, rows, 0)
+	structValid := make([]bool, rows)
+	for i := 0; i < rows; i++ {
+		structValid[i] = true
+	}
+	structBuilder.AppendValues(structValid)
+
+	// one data point each row
+	offsets := make([]int32, rows+1)
+	valid := make([]bool, rows)
+	for i := 0; i < rows+1; i++ {
+		offsets[i] = int32(i)
+		if i < rows {
+			valid[i] = true
+		}
+	}
+
+	ib.AppendValues(offsets, valid)
+
+	return ib.NewListArray()
+}
+
+func mockSampleNestedList(mem memory.Allocator, rows int) arrow.Array {
+	ib := array.NewListBuilder(mem, arrow.ListOf(arrow.PrimitiveTypes.Int32))
+	defer ib.Release()
+
+	innerListBuilder := ib.ValueBuilder().(*array.ListBuilder)
+	valueBuilder := innerListBuilder.ValueBuilder().(*array.Int32Builder)
+
+	// for nested lists, lets generated the following pattern
+	// [
+	//  [[1], nil, []],    <- row 0,
+	//  [[2,3], nil, []]   <- row 1,
+	//  [[4,5,6], nil, []] <- row 2, ...
+	// ]
+	// so we need `rows*(rows+1)/2` values, where `n == rows`
+	// rows = 1, values = 1
+	// rows = 2, values = 3
+	// rows = 3, values = 6
+	fillValue(valueBuilder.AppendValues, rows*(rows+1)/2, 0)
+	// for all inner lists
+	// the offsets for the inner list are
+	//   [0, 1, 1, 1, 3, 3, 3, 6, 6, 6]
+	//   rows = 1, [0, 1, 1, 1]
+	//   rows = 2, [0, 1, 1, 1, 3, 3, 3]
+	//   rows = 3, [0, 1, 1, 1, 3, 3, 3, 6, 6, 6]
+	// the validity is
+	//   rows = 1, [true, false, true]
+	//   rows = 2, [true, false, true, true, false, true]
+	//   rows = 2, [true, false, true, true, false, true, true, false, true]
+	innerOffsets := make([]int32, rows*3+1)
+	innerValid := make([]bool, rows*3)
+	innerOffsets[0] = 0
+	innerValid[0] = true
+	for i := 1; i < rows*3+1; i++ {
+		j := int32(math.Ceil(float64(i) / 3.0))
+		innerOffsets[i] = j * (j + 1) / 2
+		if i < rows*3 {
+			if i%3 == 1 {
+				innerValid[i] = false
+			} else {
+				innerValid[i] = true
+			}
+		}
+	}
+	innerListBuilder.AppendValues(innerOffsets, innerValid)
+	// for the outer list
+	// they're all valid, and the offsets are
+	//   [0, 1, 2, 3]
+	//   rows = 1, [0, 1]
+	//   rows = 2, [0, 1, 2]
+	outerOffsets := make([]int32, rows+1)
+	outerValid := make([]bool, rows)
+	for i := 0; i < rows+1; i++ {
+		outerOffsets[i] = int32(i * 3)
+		if i < rows {
+			outerValid[i] = true
+		}
+	}
+	ib.AppendValues(outerOffsets, outerValid)
+
+	return ib.NewListArray()
+}
+
 func mockSampleListView(mem memory.Allocator, rows int) arrow.Array {
 	ib := array.NewListViewBuilder(mem, arrow.PrimitiveTypes.Int32)
 	defer ib.Release()
-	// Example layout: ``ListView<Int8>`` Array, from
-	// https://arrow.apache.org/docs/format/Columnar.html
-	//
-	// [[12, -7, 25], null, [0, -127, 127, 50], [], [50, 12]]
-	//
-	// * Length: 4, Null count: 1
-	// * Validity bitmap buffer:
-	//
-	// | Byte 0 (validity bitmap) | Bytes 1-63            |
-	// |--------------------------|-----------------------|
-	// | 00011101                 | 0 (padding)           |
-	//
-	// * Offsets buffer (int32)
-	//
-	// | Bytes 0-3  | Bytes 4-7   | Bytes 8-11  | Bytes 12-15 | Bytes 16-19 | Bytes 20-63           |
-	// |------------|-------------|-------------|-------------|-------------|-----------------------|
-	// | 4          | 7           | 0           | 0           | 3           | unspecified (padding) |
-	//
-	// * Sizes buffer (int32)
-	//
-	// | Bytes 0-3  | Bytes 4-7   | Bytes 8-11  | Bytes 12-15 | Bytes 16-19 | Bytes 20-63           |
-	// |------------|-------------|-------------|-------------|-------------|-----------------------|
-	// | 3          | 0           | 4           | 0           | 2           | unspecified (padding) |
-	//
-	// * Values array (Int8Array):
-	// * Length: 7,  Null count: 0
-	// * Validity bitmap buffer: Not required
-	// * Values buffer (int8)
-	//
-	// | Bytes 0-6                    | Bytes 7-63            |
-	// |------------------------------|-----------------------|
-	// | 0, -127, 127, 50, 12, -7, 25 | unspecified (padding) |
 
 	const listSize = 5
 	offsets := make([]int32, rows)

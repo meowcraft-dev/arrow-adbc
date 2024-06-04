@@ -18,15 +18,12 @@
 package mocks
 
 import (
-	"errors"
 	"fmt"
-	"io"
-	"strconv"
 	"sync/atomic"
 
-	"github.com/apache/arrow-adbc/go/adbc"
+	"github.com/antlr4-go/antlr/v4"
+	"github.com/apache/arrow-adbc/go/adbc/driver/mocks/parser"
 	"github.com/apache/arrow/go/v17/arrow"
-	"github.com/apache/arrow/go/v17/arrow/array"
 	"github.com/apache/arrow/go/v17/arrow/memory"
 )
 
@@ -219,7 +216,7 @@ var (
 		"sample_nested_fixed_size_list": {
 			field: arrow.Field{
 				Name: "sample_nested_fixed_size_list",
-				Type: arrow.FixedSizeListOf(3,arrow.FixedSizeListOf(3, arrow.PrimitiveTypes.Int32)),
+				Type: arrow.FixedSizeListOf(3, arrow.FixedSizeListOf(3, arrow.PrimitiveTypes.Int32)),
 			},
 			builder: mockSampleNestedFixedSizeList,
 		},
@@ -273,288 +270,57 @@ var (
 	}
 )
 
-type ParseStatus int
-
-const (
-	Start ParseStatus = iota
-	ExpectType
-	ENd
-)
-
-func parseRows(query string, queryLen, index int) (uint64, int, error) {
-	rowEnd := -1
-	for j := index + 1; j < queryLen; j++ {
-		if query[j] >= '0' && query[j] <= '9' {
-			continue
-		} else {
-			rowEnd = j
-			break
-		}
-	}
-	parsedRows, err := strconv.Atoi(query[index:rowEnd])
-	if err != nil {
-		return 0, 0, adbc.Error{
-			Code: adbc.StatusInvalidArgument,
-			Msg:  fmt.Sprintf("invalid query: `%s`: %s", query, err.Error()),
-		}
-	}
-	return uint64(parsedRows), rowEnd, nil
+type QueryListener struct {
+	*parser.BaseQueryLanguageListener
+	typeStack []arrow.DataType
 }
 
-func parseList(mem memory.Allocator, query string, queryLen, startIndex int) (arrow.DataType, arrow.Field, arrow.Array, uint64, int, error) {
-	leftEnd, err := expectLeftAngleBracket(query, queryLen, startIndex)
-	if err != nil {
-		return nil, arrow.Field{}, nil, 0, 0, err
-	}
-	listInnerType, _, innerArray, innerRows, listEnd, err := parseQueryToFields(mem, query, queryLen, leftEnd, Start, 1, false)
-	if err != nil {
-		return nil, arrow.Field{}, nil, 0, 0, err
-	}
-	rightEnd, err := expectRightAngleBracket(query, queryLen, listEnd)
-	if err != nil {
-		return nil, arrow.Field{}, nil, 0, 0, err
-	}
-	listType := arrow.ListOf(listInnerType[0])
-
-	return listType, arrow.Field{Name: "list", Type: listType}, innerArray[0], innerRows[0], rightEnd, nil
-}
-
-func parseType(mem memory.Allocator, query string, queryLen, index int, rows uint64) (arrow.DataType, arrow.Field, arrow.Array, uint64, int, error) {
-	if index == queryLen {
-		return nil, arrow.Field{}, nil, 0, 0, io.EOF
-	}
-
-	typeEnd := -2
-	for j := index + 1; j < queryLen; j++ {
-		if (query[j] >= '0' && query[j] <= '9') || (query[j] >= 'a' && query[j] <= 'z') || (query[j] >= 'A' && query[j] <= 'Z') || query[j] == '_' {
-			typeEnd = j
-		} else {
-			break
-		}
-	}
-	typeEnd += 1
-
-	if typeEnd == -1 {
-		return nil, arrow.Field{}, nil, 0, 0, adbc.Error{
-			Code: adbc.StatusInvalidArgument,
-			Msg:  fmt.Sprintf("[parseType] invalid query: `%s`", query),
-		}
-	}
-
-	typeString := query[index:typeEnd]
-	if builder, ok := availableTypes[typeString]; ok {
-		return builder.field.Type, builder.field, builder.builder(mem, int(rows)), rows, typeEnd, nil
-	} else if typeString == "list" {
-		return parseList(mem, query, queryLen, typeEnd)
-	} else {
-		return nil, arrow.Field{}, nil, 0, 0, adbc.Error{
-			Code: adbc.StatusInvalidArgument,
-			Msg:  fmt.Sprintf("invalid query [parseType]: `%s`", query),
-		}
+func (l *QueryListener)EnterPrimitiveType(ctx *parser.PrimitiveTypeContext) {
+	typeName := ctx.GetText()
+	if dataType, ok := availableTypes[typeName]; ok {
+		l.typeStack = append(l.typeStack, dataType.field.Type)
 	}
 }
 
-func expectLeftAngleBracket(query string, queryLen, index int) (int, error) {
-	if index == queryLen {
-		return 0, io.EOF
-	}
+func (l *QueryListener)ExitList(ctx *parser.ListContext) {
+	innerType := l.typeStack[len(l.typeStack)-1]
+	l.typeStack = l.typeStack[:len(l.typeStack)-1]
 
-	for i := index; i < queryLen; i++ {
-		if query[i] == '<' {
-			return i + 1, nil
-		} else if query[i] == ' ' || query[i] == '\t' || query[i] == '\n' {
-			continue
-		} else {
-			return 0, adbc.Error{
-				Code: adbc.StatusInvalidArgument,
-				Msg:  fmt.Sprintf("expecting a `<` but got: `%c` at %d", query[i], i),
-			}
-		}
-	}
-	return queryLen, io.EOF
-}
-
-func expectRightAngleBracket(query string, queryLen, index int) (int, error) {
-	if index == queryLen {
-		return 0, io.EOF
-	}
-
-	for i := index; i < queryLen; i++ {
-		if query[i] == '>' {
-			return i + 1, nil
-		} else if query[i] == ' ' || query[i] == '\t' || query[i] == '\n' {
-			continue
-		} else {
-			return 0, adbc.Error{
-				Code: adbc.StatusInvalidArgument,
-				Msg:  fmt.Sprintf("expecting a `<` but got: `%c` at %d", query[i], i),
-			}
-		}
-	}
-	return queryLen, io.EOF
-}
-
-func expectOneComma(query string, queryLen, index int) (int, error) {
-	if index == queryLen {
-		return 0, io.EOF
-	}
-
-	for i := index; i < queryLen; i++ {
-		if query[i] == ',' {
-			return i + 1, nil
-		} else if query[i] == ' ' || query[i] == '\t' || query[i] == '\n' {
-			continue
-		} else {
-			return 0, adbc.Error{
-				Code: adbc.StatusInvalidArgument,
-				Msg:  fmt.Sprintf("expecting a `,` but got: `%c` at %d", query[i], i),
-			}
-		}
-	}
-	return queryLen, io.EOF
-}
-
-func expectOneColumn(query string, queryLen, index int) (int, error) {
-	if index == queryLen {
-		return 0, io.EOF
-	}
-
-	for i := index; i < queryLen; i++ {
-		if query[i] == ':' {
-			return i + 1, nil
-		} else if query[i] == ' ' || query[i] == '\t' || query[i] == '\n' {
-			continue
-		} else {
-			return 0, adbc.Error{
-				Code: adbc.StatusInvalidArgument,
-				Msg:  fmt.Sprintf("expecting a `:` but got: `%c` at %d", query[i], i),
-			}
-		}
-	}
-	return queryLen, io.EOF
-}
-
-func parseQueryToFields(mem memory.Allocator, query string, queryLen, index int, status ParseStatus, rows uint64, allowMultipleTypes bool) ([]arrow.DataType, []arrow.Field, []arrow.Array, []uint64, int, error) {
-	switch status {
-	case Start:
-		for i := index; i < queryLen; i++ {
-			if query[i] == ' ' || query[i] == '\t' || query[i] == '\n' {
-				continue
-			} else if query[i] >= '0' && query[i] <= '9' {
-				parsedRows, rowEnd, err := parseRows(query, queryLen, i)
-				if err != nil {
-					return nil, nil, nil, nil, 0, err
-				}
-
-				columnEnd, err := expectOneColumn(query, queryLen, rowEnd)
-				if err != nil {
-					return nil, nil, nil, nil, 0, err
-				}
-				return parseQueryToFields(mem, query, queryLen, columnEnd, ExpectType, parsedRows, allowMultipleTypes)
-			} else {
-				return parseQueryToFields(mem, query, queryLen, i, ExpectType, 1, allowMultipleTypes)
-			}
-		}
-	case ExpectType:
-		types := make([]arrow.DataType, 0)
-		typeRows := make([]uint64, 0)
-		typeFields := make([]arrow.Field, 0)
-		typeArrays := make([]arrow.Array, 0)
-		currentType, typeField, typeArray, rowsForType, typeEnd, err := parseType(mem, query, queryLen, index, rows)
-		if err != nil {
-			if errors.Is(err, io.EOF) {
-				types = append(types, currentType)
-				typeRows = append(typeRows, rowsForType)
-				typeFields = append(typeFields, typeField)
-				typeArrays = append(typeArrays, typeArray)
-				return types, typeFields, typeArrays, typeRows, typeEnd, nil
-			}
-			return nil, nil, nil, nil, 0, err
-		}
-		types = append(types, currentType)
-		typeRows = append(typeRows, rowsForType)
-		typeFields = append(typeFields, typeField)
-		typeArrays = append(typeArrays, typeArray)
-		if allowMultipleTypes {
-			for {
-				//fmt.Printf("[debug:expectOneComma] queryLen=%d, typeEnd=%d", queryLen, typeEnd)
-				commaEnd, err := expectOneComma(query, queryLen, typeEnd)
-				if err != nil {
-					if errors.Is(err, io.EOF) {
-						break
-					}
-					return nil, nil, nil, nil, 0, err
-				}
-
-				nextType, nextField, nextArray, nextRows, nextEnd, err := parseType(mem, query, queryLen, commaEnd, rows)
-				if err != nil {
-					if errors.Is(err, io.EOF) {
-						break
-					}
-					return nil, nil, nil, nil, 0, err
-				}
-				types = append(types, nextType)
-				typeRows = append(typeRows, nextRows)
-				typeFields = append(typeFields, nextField)
-				typeArrays = append(typeArrays, nextArray)
-				typeEnd = nextEnd
-			}
-			return types, typeFields, typeArrays, typeRows, typeEnd, nil
-		} else {
-			return types, typeFields, typeArrays, typeRows, typeEnd, nil
-		}
-	default:
-		return nil, nil, nil, nil, 0, adbc.Error{
-			Code: adbc.StatusInvalidArgument,
-			Msg:  fmt.Sprintf("[default] invalid query: `%s`", query),
-		}
-	}
-
-	return nil, nil, nil, nil, 0, adbc.Error{
-		Code: adbc.StatusInvalidArgument,
-		Msg:  fmt.Sprintf("[return] invalid query: `%s`", query),
-	}
-}
-
-func parseQuery(query string, innerRows int) ([]arrow.Field, []arrow.Array, int, error) {
-	mem := memory.NewCheckedAllocator(memory.NewGoAllocator())
-	_, currentFields, currentArrays, rowsForType, _, err := parseQueryToFields(mem, query, len(query), 0, Start, 1, true)
-	if err != nil {
-		if errors.Is(err, io.EOF) {
-			return nil, nil, 0, adbc.Error{
-				Code: adbc.StatusInvalidArgument,
-				Msg:  fmt.Sprintf("eof"),
-			}
-		}
-		return nil, nil, 0, adbc.Error{}
-	}
-	//fmt.Printf("[parseQueryToFields] query: %s\n", query)
-	//fmt.Printf("currentTypes: %v\n", currentTypes)
-	//fmt.Printf("currentFields: %v\n", currentFields)
-	//fmt.Printf("currentArrays: %v\n", currentArrays)
-	//fmt.Printf("rowsForType: %v\n", rowsForType)
-	//fmt.Printf("typeEnd: %v\n", typeEnd)
-
-	return currentFields, currentArrays, int(rowsForType[0]), nil
+	thisList := arrow.ListOf(innerType)
+	l.typeStack = append(l.typeStack, thisList)
 }
 
 // NewMockReader Creates a mockReader according to the query.
 // The query should be a list of types separated by commas
 // The returned mockReader will have the types in the same order
 func NewMockReader(query string) (*mockReader, error) {
-	fields, fieldValues, rows, err := parseQuery(query, 1)
-	if err != nil {
-		return nil, err
+	inputStream := antlr.NewInputStream(query)
+	lexer := parser.NewQueryLanguageLexer(inputStream)
+	tokenStream := antlr.NewCommonTokenStream(lexer, antlr.TokenDefaultChannel)
+	parser := parser.NewQueryLanguageParser(tokenStream)
+
+	listener := &QueryListener{}
+	antlr.ParseTreeWalkerDefault.Walk(listener, parser.Query())
+
+	fields := make([]arrow.Field, len(listener.typeStack))
+
+	for i, t := range listener.typeStack {
+		fields[i] = arrow.Field{
+			Name: fmt.Sprintf("field_%d", i),
+			Type: t,
+		}
 	}
 	schema := arrow.NewSchema(fields, nil)
-	rec := array.NewRecord(schema, fieldValues, int64(rows))
-	rec.Retain()
+
+	var mockData arrow.Record
+	// TODO mockData := populate(schema)
+
 	return &mockReader{
 		refCount:           1,
 		numRecords:         1,
 		currentRecordIndex: 0,
 		schema:             schema,
-		record:             rec,
+		record:             mockData,
 	}, nil
 }
 

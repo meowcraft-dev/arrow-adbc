@@ -936,3 +936,28 @@ func mockNull(mem memory.Allocator, rows int) arrow.Array {
 // 	defer lb.Release()
 // 	// vb := lb.ValueBuilder().(*array.ListBuilder).Append()
 // }
+
+func PopulateSchema(schema *arrow.Schema) arrow.Record {
+	mem := memory.NewGoAllocator()
+	recordBuilder := array.NewRecordBuilder(mem, schema)
+	defer recordBuilder.Release()
+
+	rows := 10
+
+	for i := 0; i < schema.NumFields(); i++ {
+		field := schema.Field(i)
+		var arr arrow.Array
+		switch field.Type.(type) {
+			case *arrow.Int8Type:
+				arr = mockInt8(mem, rows)
+			case *arrow.StringType:
+				arr = mockString(mem, rows)
+		default:
+			panic(fmt.Sprintf("unsupported type: %T", field.Type))
+		}
+
+		arr.Release()
+	}
+
+	return recordBuilder.NewRecord()
+}

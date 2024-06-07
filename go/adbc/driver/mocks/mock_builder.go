@@ -416,6 +416,15 @@ func mockFixedSizeBinary(mem memory.Allocator, rows int) arrow.Array {
 	return ib.NewFixedSizeBinaryArray()
 }
 
+func mockBool(mem memory.Allocator, rows int) arrow.Array {
+	ib := array.NewBooleanBuilder(mem)
+	defer ib.Release()
+	for i := 0; i < rows; i++ {
+		ib.Append(i%2 == 0)
+	}
+	return ib.NewBooleanArray()
+}
+
 func mockDate32(mem memory.Allocator, rows int) arrow.Array {
 	ib := array.NewDate32Builder(mem)
 	defer ib.Release()

@@ -110,6 +110,10 @@ var (
 			field:   arrow.Field{Name: "date64", Type: arrow.PrimitiveTypes.Date64},
 			builder: mockDate64,
 		},
+		"bool": {
+			field:   arrow.Field{Name: "bool", Type: arrow.FixedWidthTypes.Boolean},
+			builder: mockBool,
+		},
 		"time32s": {
 			field:   arrow.Field{Name: "time32s", Type: arrow.FixedWidthTypes.Time32s},
 			builder: mockTime32s,

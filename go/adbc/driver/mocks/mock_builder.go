@@ -18,8 +18,11 @@
 package mocks
 
 import (
+	"strconv"
+
 	"github.com/apache/arrow/go/v17/arrow"
 	"github.com/apache/arrow/go/v17/arrow/array"
+	"github.com/apache/arrow/go/v17/arrow/float16"
 	"github.com/apache/arrow/go/v17/arrow/memory"
 )
 
@@ -28,18 +31,18 @@ var (
 		int(arrow.NULL):              mockNull,
 		int(arrow.BOOL):              mockBool,
 		int(arrow.UINT8):             mockUint8,
-		// int(arrow.INT8):              mockInt8,
-		// int(arrow.UINT16):            mockUint16,
-		// int(arrow.INT16):             mockInt16,
-		// int(arrow.UINT32):            mockUint32,
-		// int(arrow.INT32):             mockInt32,
-		// int(arrow.UINT64):            mockUint64,
-		// int(arrow.INT64):             mockInt64,
-		// int(arrow.FLOAT16):           mockFloat16,
-		// int(arrow.FLOAT32):           mockFloat32,
-		// int(arrow.FLOAT64):           mockFloat64,
-		// int(arrow.STRING):            mockString,
-		// int(arrow.BINARY):            mockBinary,
+		int(arrow.INT8):              mockInt8,
+		int(arrow.UINT16):            mockUint16,
+		int(arrow.INT16):             mockInt16,
+		int(arrow.UINT32):            mockUint32,
+		int(arrow.INT32):             mockInt32,
+		int(arrow.UINT64):            mockUint64,
+		int(arrow.INT64):             mockInt64,
+		int(arrow.FLOAT16):           mockFloat16,
+		int(arrow.FLOAT32):           mockFloat32,
+		int(arrow.FLOAT64):           mockFloat64,
+		int(arrow.STRING):            mockString,
+		int(arrow.BINARY):            mockBinary,
 		// int(arrow.FIXED_SIZE_BINARY): mockFixedSizeBinary,
 		// int(arrow.DATE32):            mockDate32,
 		// int(arrow.DATE64):            mockDate64,
@@ -83,6 +86,126 @@ func mockUint8(field arrow.Field, rows int) arrow.Array {
 	
 	for i := 0; i < rows; i++ {
 		builder.Append(uint8(i))
+	}
+
+	return builder.NewArray()
+}
+
+func mockInt8(field arrow.Field, rows int) arrow.Array {
+	builder := array.NewInt8Builder(memory.DefaultAllocator)
+
+	for i := 0; i < rows; i++ {
+		builder.Append(int8(i * []int{-1, 1}[i%2]))
+	}
+
+	return builder.NewArray()
+}
+
+func mockUint16(field arrow.Field, rows int) arrow.Array {
+	builder := array.NewUint16Builder(memory.DefaultAllocator)
+
+	for i := 0; i < rows; i++ {
+		builder.Append(uint16(i))
+	}
+
+	return builder.NewArray()
+}
+
+func mockInt16(field arrow.Field, rows int) arrow.Array {
+	builder := array.NewInt16Builder(memory.DefaultAllocator)
+
+	for i := 0; i < rows; i++ {
+		builder.Append(int16(i * []int{-1, 1}[i%2]))
+	}
+
+	return builder.NewArray()
+}
+
+func mockUint32(field arrow.Field, rows int) arrow.Array {
+	builder := array.NewUint32Builder(memory.DefaultAllocator)
+
+	for i := 0; i < rows; i++ {
+		builder.Append(uint32(i))
+	}
+
+	return builder.NewArray()
+}
+
+func mockInt32(field arrow.Field, rows int) arrow.Array {
+	builder := array.NewInt32Builder(memory.DefaultAllocator)
+
+	for i := 0; i < rows; i++ {
+		builder.Append(int32(i * []int{-1, 1}[i%2]))
+	}	
+
+	return builder.NewArray()
+}
+
+func mockUint64(field arrow.Field, rows int) arrow.Array {
+	builder := array.NewUint64Builder(memory.DefaultAllocator)
+
+	for i := 0; i < rows; i++ {
+		builder.Append(uint64(i))
+	}
+
+	return builder.NewArray()
+}
+
+func mockInt64(field arrow.Field, rows int) arrow.Array {
+	builder := array.NewInt64Builder(memory.DefaultAllocator)
+
+	for i := 0; i < rows; i++ {
+		builder.Append(int64(i * []int{-1, 1}[i%2]))
+	}
+
+	return builder.NewArray()
+}
+
+func mockFloat16(field arrow.Field, rows int) arrow.Array {
+	builder := array.NewFloat16Builder(memory.DefaultAllocator)
+
+	for i := 0; i < rows; i++ {
+		builder.Append(float16.New(float32(i * []int{-1, 1}[i%2])))
+	}
+
+	return builder.NewArray()
+}
+
+func mockFloat32(field arrow.Field, rows int) arrow.Array {
+	builder := array.NewFloat32Builder(memory.DefaultAllocator)
+
+	for i := 0; i < rows; i++ {
+		builder.Append(float32(i * []int{-1, 1}[i%2]))
+	}
+
+	return builder.NewArray()
+}
+
+func mockFloat64(field arrow.Field, rows int) arrow.Array {
+	builder := array.NewFloat64Builder(memory.DefaultAllocator)
+
+	for i := 0; i < rows; i++ {
+		builder.Append(float64(i * []int{-1, 1}[i%2]))
+	}
+
+	return builder.NewArray()
+}
+
+func mockString(field arrow.Field, rows int) arrow.Array {
+	builder := array.NewStringBuilder(memory.DefaultAllocator)
+
+	for i := 0; i < rows; i++ {
+		builder.Append(strconv.Itoa(i))
+	}
+
+	return builder.NewArray()
+}
+
+func mockBinary(field arrow.Field, rows int) arrow.Array {
+	builder := array.NewBinaryBuilder(memory.DefaultAllocator, arrow.BinaryTypes.Binary)
+
+	for i := 0; i < rows; i++ {
+		builder.Append([]byte(strconv.Itoa(i)))
 	}
 
 	return builder.NewArray()

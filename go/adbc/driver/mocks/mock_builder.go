@@ -20,9 +20,12 @@ package mocks
 import (
 	"fmt"
 	"math"
+	"math/big"
 
 	"github.com/apache/arrow/go/v17/arrow"
 	"github.com/apache/arrow/go/v17/arrow/array"
+	"github.com/apache/arrow/go/v17/arrow/decimal128"
+	"github.com/apache/arrow/go/v17/arrow/decimal256"
 	"github.com/apache/arrow/go/v17/arrow/float16"
 	"github.com/apache/arrow/go/v17/arrow/memory"
 	"golang.org/x/exp/constraints"
@@ -542,6 +545,32 @@ func mockMonthDayNanoInterval(mem memory.Allocator, rows int) arrow.Array {
 	defer ib.Release()
 	fillIntervalMonthDayNanoValue(ib.AppendValues, rows, 0)
 	return ib.NewMonthDayNanoIntervalArray()
+}
+
+func mockDecimal128(mem memory.Allocator, rows int) arrow.Array {
+	ib := array.NewDecimal128Builder(mem, &arrow.Decimal128Type{Precision: 37, Scale: 2})
+	defer ib.Release()
+
+	for i := 0; i < rows; i++ {
+		v:= new(big.Int).SetUint64(uint64(math.Pow(2, 64)-1)) 
+		v = v.Add(v, big.NewInt(int64(i)))
+		ib.Append(decimal128.FromBigInt(v))
+	}
+	
+	return ib.NewDecimal128Array()
+}
+
+func mockDecimal256 (mem memory.Allocator, rows int) arrow.Array {
+	ib := array.NewDecimal256Builder(mem, &arrow.Decimal256Type{Precision: 76, Scale: 4})
+	defer ib.Release()
+
+	for i := 0; i < rows; i++ {
+		v:= new(big.Int).SetUint64(uint64(math.Pow(2, 64)-1))
+		v = v.Add(v, big.NewInt(int64(i)))
+		ib.Append(decimal256.FromBigInt(v))
+	}
+
+	return ib.NewDecimal256Array()
 }
 
 func mockSampleList(mem memory.Allocator, rows int) arrow.Array {

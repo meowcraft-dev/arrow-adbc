@@ -174,6 +174,14 @@ var (
 			field:   arrow.Field{Name: "interval_monthdaynano", Type: arrow.FixedWidthTypes.MonthDayNanoInterval},
 			builder: mockMonthDayNanoInterval,
 		},
+		"decimal128": {
+			field:   arrow.Field{Name: "decimal128", Type: &arrow.Decimal128Type{Precision: 37, Scale: 2}},
+			builder: mockDecimal128,
+		},
+		"decimal256": {
+			field:   arrow.Field{Name: "decimal256", Type: &arrow.Decimal256Type{Precision: 76, Scale: 4}},
+			builder: mockDecimal256,
+		},
 		"sample_list": {
 			field:   arrow.Field{Name: "sample_list", Type: arrow.ListOf(arrow.PrimitiveTypes.Int32)},
 			builder: mockSampleList,

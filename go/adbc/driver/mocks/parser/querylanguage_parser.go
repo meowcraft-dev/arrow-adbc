@@ -33,34 +33,46 @@ var QueryLanguageParserStaticData struct {
 func querylanguageParserInit() {
 	staticData := &QueryLanguageParserStaticData
 	staticData.LiteralNames = []string{
-		"", "','", "'list'", "'<'", "'>'", "'struct'", "'int8'", "'string'",
-		"'bool'",
+		"", "','", "'list'", "'<'", "'>'", "'struct'", "'uint8'", "'int8'",
+		"'uint16'", "'int16'", "'uint32'", "'int32'", "'uint64'", "'int64'",
+		"'float16'", "'float32'", "'float64'", "'binary'", "'string'", "'date32'",
+		"'date64'", "'bool'", "'time32s'", "'time32ms'", "'time64us'", "'time64ns'",
+		"'timestamp_s'", "'timestamp_ms'", "'timestamp_us'", "'timestamp_ns'",
+		"'duration_s'", "'duration_ms'", "'duration_us'", "'duration_ns'", "'interval_month'",
+		"'interval_daytime'", "'interval_monthdaynano'", "'null'",
 	}
 	staticData.SymbolicNames = []string{
-		"", "", "", "", "", "", "", "", "", "IDENTIFIER", "WS",
+		"", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "",
+		"", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "",
+		"", "", "", "", "WS", "ROWCOUNT", "FIELDNAME",
 	}
 	staticData.RuleNames = []string{
-		"query", "typeSpec", "list", "struct", "primitiveType",
+		"query", "typeSpec", "list", "struct", "simpleTypes",
 	}
 	staticData.PredictionContextCache = antlr.NewPredictionContextCache()
 	staticData.serializedATN = []int32{
-		4, 1, 10, 45, 2, 0, 7, 0, 2, 1, 7, 1, 2, 2, 7, 2, 2, 3, 7, 3, 2, 4, 7,
-		4, 1, 0, 1, 0, 1, 0, 5, 0, 14, 8, 0, 10, 0, 12, 0, 17, 9, 0, 1, 0, 1, 0,
-		1, 1, 1, 1, 1, 1, 3, 1, 24, 8, 1, 1, 2, 1, 2, 1, 2, 1, 2, 1, 2, 1, 3, 1,
-		3, 1, 3, 1, 3, 1, 3, 5, 3, 36, 8, 3, 10, 3, 12, 3, 39, 9, 3, 1, 3, 1, 3,
-		1, 4, 1, 4, 1, 4, 0, 0, 5, 0, 2, 4, 6, 8, 0, 1, 1, 0, 6, 8, 43, 0, 10,
-		1, 0, 0, 0, 2, 23, 1, 0, 0, 0, 4, 25, 1, 0, 0, 0, 6, 30, 1, 0, 0, 0, 8,
-		42, 1, 0, 0, 0, 10, 15, 3, 2, 1, 0, 11, 12, 5, 1, 0, 0, 12, 14, 3, 2, 1,
-		0, 13, 11, 1, 0, 0, 0, 14, 17, 1, 0, 0, 0, 15, 13, 1, 0, 0, 0, 15, 16,
-		1, 0, 0, 0, 16, 18, 1, 0, 0, 0, 17, 15, 1, 0, 0, 0, 18, 19, 5, 0, 0, 1,
-		19, 1, 1, 0, 0, 0, 20, 24, 3, 8, 4, 0, 21, 24, 3, 4, 2, 0, 22, 24, 3, 6,
-		3, 0, 23, 20, 1, 0, 0, 0, 23, 21, 1, 0, 0, 0, 23, 22, 1, 0, 0, 0, 24, 3,
-		1, 0, 0, 0, 25, 26, 5, 2, 0, 0, 26, 27, 5, 3, 0, 0, 27, 28, 3, 2, 1, 0,
-		28, 29, 5, 4, 0, 0, 29, 5, 1, 0, 0, 0, 30, 31, 5, 5, 0, 0, 31, 32, 5, 3,
-		0, 0, 32, 37, 3, 2, 1, 0, 33, 34, 5, 1, 0, 0, 34, 36, 3, 2, 1, 0, 35, 33,
-		1, 0, 0, 0, 36, 39, 1, 0, 0, 0, 37, 35, 1, 0, 0, 0, 37, 38, 1, 0, 0, 0,
-		38, 40, 1, 0, 0, 0, 39, 37, 1, 0, 0, 0, 40, 41, 5, 4, 0, 0, 41, 7, 1, 0,
-		0, 0, 42, 43, 7, 0, 0, 0, 43, 9, 1, 0, 0, 0, 3, 15, 23, 37,
+		4, 1, 40, 54, 2, 0, 7, 0, 2, 1, 7, 1, 2, 2, 7, 2, 2, 3, 7, 3, 2, 4, 7,
+		4, 1, 0, 3, 0, 12, 8, 0, 1, 0, 1, 0, 1, 0, 5, 0, 17, 8, 0, 10, 0, 12, 0,
+		20, 9, 0, 1, 0, 1, 0, 1, 1, 1, 1, 1, 1, 3, 1, 27, 8, 1, 1, 1, 3, 1, 30,
+		8, 1, 1, 2, 1, 2, 1, 2, 3, 2, 35, 8, 2, 1, 2, 1, 2, 1, 2, 1, 3, 1, 3, 1,
+		3, 1, 3, 1, 3, 5, 3, 45, 8, 3, 10, 3, 12, 3, 48, 9, 3, 1, 3, 1, 3, 1, 4,
+		1, 4, 1, 4, 0, 0, 5, 0, 2, 4, 6, 8, 0, 1, 1, 0, 6, 37, 55, 0, 11, 1, 0,
+		0, 0, 2, 26, 1, 0, 0, 0, 4, 31, 1, 0, 0, 0, 6, 39, 1, 0, 0, 0, 8, 51, 1,
+		0, 0, 0, 10, 12, 5, 39, 0, 0, 11, 10, 1, 0, 0, 0, 11, 12, 1, 0, 0, 0, 12,
+		13, 1, 0, 0, 0, 13, 18, 3, 2, 1, 0, 14, 15, 5, 1, 0, 0, 15, 17, 3, 2, 1,
+		0, 16, 14, 1, 0, 0, 0, 17, 20, 1, 0, 0, 0, 18, 16, 1, 0, 0, 0, 18, 19,
+		1, 0, 0, 0, 19, 21, 1, 0, 0, 0, 20, 18, 1, 0, 0, 0, 21, 22, 5, 0, 0, 1,
+		22, 1, 1, 0, 0, 0, 23, 27, 3, 8, 4, 0, 24, 27, 3, 4, 2, 0, 25, 27, 3, 6,
+		3, 0, 26, 23, 1, 0, 0, 0, 26, 24, 1, 0, 0, 0, 26, 25, 1, 0, 0, 0, 27, 29,
+		1, 0, 0, 0, 28, 30, 5, 40, 0, 0, 29, 28, 1, 0, 0, 0, 29, 30, 1, 0, 0, 0,
+		30, 3, 1, 0, 0, 0, 31, 32, 5, 2, 0, 0, 32, 34, 5, 3, 0, 0, 33, 35, 5, 39,
+		0, 0, 34, 33, 1, 0, 0, 0, 34, 35, 1, 0, 0, 0, 35, 36, 1, 0, 0, 0, 36, 37,
+		3, 2, 1, 0, 37, 38, 5, 4, 0, 0, 38, 5, 1, 0, 0, 0, 39, 40, 5, 5, 0, 0,
+		40, 41, 5, 3, 0, 0, 41, 46, 3, 2, 1, 0, 42, 43, 5, 1, 0, 0, 43, 45, 3,
+		2, 1, 0, 44, 42, 1, 0, 0, 0, 45, 48, 1, 0, 0, 0, 46, 44, 1, 0, 0, 0, 46,
+		47, 1, 0, 0, 0, 47, 49, 1, 0, 0, 0, 48, 46, 1, 0, 0, 0, 49, 50, 5, 4, 0,
+		0, 50, 7, 1, 0, 0, 0, 51, 52, 7, 0, 0, 0, 52, 9, 1, 0, 0, 0, 6, 11, 18,
+		26, 29, 34, 46,
 	}
 	deserializer := antlr.NewATNDeserializer(nil)
 	staticData.atn = deserializer.Deserialize(staticData.serializedATN)
@@ -98,26 +110,56 @@ func NewQueryLanguageParser(input antlr.TokenStream) *QueryLanguageParser {
 
 // QueryLanguageParser tokens.
 const (
-	QueryLanguageParserEOF        = antlr.TokenEOF
-	QueryLanguageParserT__0       = 1
-	QueryLanguageParserT__1       = 2
-	QueryLanguageParserT__2       = 3
-	QueryLanguageParserT__3       = 4
-	QueryLanguageParserT__4       = 5
-	QueryLanguageParserT__5       = 6
-	QueryLanguageParserT__6       = 7
-	QueryLanguageParserT__7       = 8
-	QueryLanguageParserIDENTIFIER = 9
-	QueryLanguageParserWS         = 10
+	QueryLanguageParserEOF       = antlr.TokenEOF
+	QueryLanguageParserT__0      = 1
+	QueryLanguageParserT__1      = 2
+	QueryLanguageParserT__2      = 3
+	QueryLanguageParserT__3      = 4
+	QueryLanguageParserT__4      = 5
+	QueryLanguageParserT__5      = 6
+	QueryLanguageParserT__6      = 7
+	QueryLanguageParserT__7      = 8
+	QueryLanguageParserT__8      = 9
+	QueryLanguageParserT__9      = 10
+	QueryLanguageParserT__10     = 11
+	QueryLanguageParserT__11     = 12
+	QueryLanguageParserT__12     = 13
+	QueryLanguageParserT__13     = 14
+	QueryLanguageParserT__14     = 15
+	QueryLanguageParserT__15     = 16
+	QueryLanguageParserT__16     = 17
+	QueryLanguageParserT__17     = 18
+	QueryLanguageParserT__18     = 19
+	QueryLanguageParserT__19     = 20
+	QueryLanguageParserT__20     = 21
+	QueryLanguageParserT__21     = 22
+	QueryLanguageParserT__22     = 23
+	QueryLanguageParserT__23     = 24
+	QueryLanguageParserT__24     = 25
+	QueryLanguageParserT__25     = 26
+	QueryLanguageParserT__26     = 27
+	QueryLanguageParserT__27     = 28
+	QueryLanguageParserT__28     = 29
+	QueryLanguageParserT__29     = 30
+	QueryLanguageParserT__30     = 31
+	QueryLanguageParserT__31     = 32
+	QueryLanguageParserT__32     = 33
+	QueryLanguageParserT__33     = 34
+	QueryLanguageParserT__34     = 35
+	QueryLanguageParserT__35     = 36
+	QueryLanguageParserT__36     = 37
+	QueryLanguageParserWS        = 38
+	QueryLanguageParserROWCOUNT  = 39
+	QueryLanguageParserFIELDNAME = 40
 )
 
 // QueryLanguageParser rules.
 const (
-	QueryLanguageParserRULE_query         = 0
-	QueryLanguageParserRULE_typeSpec      = 1
-	QueryLanguageParserRULE_list          = 2
-	QueryLanguageParserRULE_struct        = 3
-	QueryLanguageParserRULE_primitiveType = 4
+	QueryLanguageParserRULE_query       = 0
+	QueryLanguageParserRULE_typeSpec    = 1
+	QueryLanguageParserRULE_list        = 2
+	QueryLanguageParserRULE_struct      = 3
+	QueryLanguageParserRULE_simpleTypes = 4
 )
 
 // IQueryContext is an interface to support dynamic dispatch.
@@ -131,6 +173,7 @@ type IQueryContext interface {
 	AllTypeSpec() []ITypeSpecContext
 	TypeSpec(i int) ITypeSpecContext
 	EOF() antlr.TerminalNode
+	ROWCOUNT() antlr.TerminalNode
 
 	// IsQueryContext differentiates from other interfaces.
 	IsQueryContext()
@@ -213,6 +256,10 @@ func (s *QueryContext) EOF() antlr.TerminalNode {
 	return s.GetToken(QueryLanguageParserEOF, 0)
 }
 
+func (s *QueryContext) ROWCOUNT() antlr.TerminalNode {
+	return s.GetToken(QueryLanguageParserROWCOUNT, 0)
+}
+
 func (s *QueryContext) GetRuleContext() antlr.RuleContext {
 	return s
 }
@@ -239,11 +286,29 @@ func (p *QueryLanguageParser) Query() (localctx IQueryContext) {
 	var _la int
 
 	p.EnterOuterAlt(localctx, 1)
+	p.SetState(11)
+	p.GetErrorHandler().Sync(p)
+	if p.HasError() {
+		goto errorExit
+	}
+	_la = p.GetTokenStream().LA(1)
+
+	if _la == QueryLanguageParserROWCOUNT {
+		{
+			p.SetState(10)
+			p.Match(QueryLanguageParserROWCOUNT)
+			if p.HasError() {
+				// Recognition error - abort rule
+				goto errorExit
+			}
+		}
+
+	}
 	{
-		p.SetState(10)
+		p.SetState(13)
 		p.TypeSpec()
 	}
-	p.SetState(15)
+	p.SetState(18)
 	p.GetErrorHandler().Sync(p)
 	if p.HasError() {
 		goto errorExit
@@ -252,7 +317,7 @@ func (p *QueryLanguageParser) Query() (localctx IQueryContext) {
 
 	for _la == QueryLanguageParserT__0 {
 		{
-			p.SetState(11)
+			p.SetState(14)
 			p.Match(QueryLanguageParserT__0)
 			if p.HasError() {
 				// Recognition error - abort rule
@@ -260,11 +325,11 @@ func (p *QueryLanguageParser) Query() (localctx IQueryContext) {
 			}
 		}
 		{
-			p.SetState(12)
+			p.SetState(15)
 			p.TypeSpec()
 		}
 
-		p.SetState(17)
+		p.SetState(20)
 		p.GetErrorHandler().Sync(p)
 		if p.HasError() {
 			goto errorExit
@@ -272,7 +337,7 @@ func (p *QueryLanguageParser) Query() (localctx IQueryContext) {
 		_la = p.GetTokenStream().LA(1)
 	}
 	{
-		p.SetState(18)
+		p.SetState(21)
 		p.Match(QueryLanguageParserEOF)
 		if p.HasError() {
 			// Recognition error - abort rule
@@ -301,9 +366,10 @@ type ITypeSpecContext interface {
 	GetParser() antlr.Parser
 
 	// Getter signatures
-	PrimitiveType() IPrimitiveTypeContext
+	SimpleTypes() ISimpleTypesContext
 	List() IListContext
 	Struct_() IStructContext
+	FIELDNAME() antlr.TerminalNode
 
 	// IsTypeSpecContext differentiates from other interfaces.
 	IsTypeSpecContext()
@@ -341,10 +407,10 @@ func NewTypeSpecContext(parser antlr.Parser, parent antlr.ParserRuleContext, inv
 
 func (s *TypeSpecContext) GetParser() antlr.Parser { return s.parser }
 
-func (s *TypeSpecContext) PrimitiveType() IPrimitiveTypeContext {
+func (s *TypeSpecContext) SimpleTypes() ISimpleTypesContext {
 	var t antlr.RuleContext
 	for _, ctx := range s.GetChildren() {
-		if _, ok := ctx.(IPrimitiveTypeContext); ok {
+		if _, ok := ctx.(ISimpleTypesContext); ok {
 			t = ctx.(antlr.RuleContext)
 			break
 		}
@@ -354,7 +420,7 @@ func (s *TypeSpecContext) PrimitiveType() IPrimitiveTypeContext {
 		return nil
 	}
 
-	return t.(IPrimitiveTypeContext)
+	return t.(ISimpleTypesContext)
 }
 
 func (s *TypeSpecContext) List() IListContext {
@@ -389,6 +455,10 @@ func (s *TypeSpecContext) Struct_() IStructContext {
 	return t.(IStructContext)
 }
 
+func (s *TypeSpecContext) FIELDNAME() antlr.TerminalNode {
+	return s.GetToken(QueryLanguageParserFIELDNAME, 0)
+}
+
 func (s *TypeSpecContext) GetRuleContext() antlr.RuleContext {
 	return s
 }
@@ -412,37 +482,55 @@ func (s *TypeSpecContext) ExitRule(listener antlr.ParseTreeListener) {
 func (p *QueryLanguageParser) TypeSpec() (localctx ITypeSpecContext) {
 	localctx = NewTypeSpecContext(p, p.GetParserRuleContext(), p.GetState())
 	p.EnterRule(localctx, 2, QueryLanguageParserRULE_typeSpec)
-	p.SetState(23)
+	var _la int
+
+	p.EnterOuterAlt(localctx, 1)
+	p.SetState(26)
 	p.GetErrorHandler().Sync(p)
 	if p.HasError() {
 		goto errorExit
 	}
 
 	switch p.GetTokenStream().LA(1) {
-	case QueryLanguageParserT__5, QueryLanguageParserT__6, QueryLanguageParserT__7:
-		p.EnterOuterAlt(localctx, 1)
+	case QueryLanguageParserT__5, QueryLanguageParserT__6, QueryLanguageParserT__7, QueryLanguageParserT__8, QueryLanguageParserT__9, QueryLanguageParserT__10, QueryLanguageParserT__11, QueryLanguageParserT__12, QueryLanguageParserT__13, QueryLanguageParserT__14, QueryLanguageParserT__15, QueryLanguageParserT__16, QueryLanguageParserT__17, QueryLanguageParserT__18, QueryLanguageParserT__19, QueryLanguageParserT__20, QueryLanguageParserT__21, QueryLanguageParserT__22, QueryLanguageParserT__23, QueryLanguageParserT__24, QueryLanguageParserT__25, QueryLanguageParserT__26, QueryLanguageParserT__27, QueryLanguageParserT__28, QueryLanguageParserT__29, QueryLanguageParserT__30, QueryLanguageParserT__31, QueryLanguageParserT__32, QueryLanguageParserT__33, QueryLanguageParserT__34, QueryLanguageParserT__35, QueryLanguageParserT__36:
 		{
-			p.SetState(20)
-			p.PrimitiveType()
+			p.SetState(23)
+			p.SimpleTypes()
 		}
 
 	case QueryLanguageParserT__1:
-		p.EnterOuterAlt(localctx, 2)
 		{
-			p.SetState(21)
+			p.SetState(24)
 			p.List()
 		}
 
 	case QueryLanguageParserT__4:
-		p.EnterOuterAlt(localctx, 3)
 		{
-			p.SetState(22)
+			p.SetState(25)
 			p.Struct_()
 		}
 
 	default:
 		p.SetError(antlr.NewNoViableAltException(p, nil, nil, nil, nil, nil))
 		goto errorExit
+	}
+	p.SetState(29)
+	p.GetErrorHandler().Sync(p)
+	if p.HasError() {
+		goto errorExit
+	}
+	_la = p.GetTokenStream().LA(1)
+
+	if _la == QueryLanguageParserFIELDNAME {
+		{
+			p.SetState(28)
+			p.Match(QueryLanguageParserFIELDNAME)
+			if p.HasError() {
+				// Recognition error - abort rule
+				goto errorExit
+			}
+		}
+
 	}
 
 errorExit:
@@ -467,6 +555,7 @@ type IListContext interface {
 
 	// Getter signatures
 	TypeSpec() ITypeSpecContext
+	ROWCOUNT() antlr.TerminalNode
 
 	// IsListContext differentiates from other interfaces.
 	IsListContext()
@@ -520,6 +609,10 @@ func (s *ListContext) TypeSpec() ITypeSpecContext {
 	return t.(ITypeSpecContext)
 }
 
+func (s *ListContext) ROWCOUNT() antlr.TerminalNode {
+	return s.GetToken(QueryLanguageParserROWCOUNT, 0)
+}
+
 func (s *ListContext) GetRuleContext() antlr.RuleContext {
 	return s
 }
@@ -543,9 +636,11 @@ func (s *ListContext) ExitRule(listener antlr.ParseTreeListener) {
 func (p *QueryLanguageParser) List() (localctx IListContext) {
 	localctx = NewListContext(p, p.GetParserRuleContext(), p.GetState())
 	p.EnterRule(localctx, 4, QueryLanguageParserRULE_list)
+	var _la int
+
 	p.EnterOuterAlt(localctx, 1)
 	{
-		p.SetState(25)
+		p.SetState(31)
 		p.Match(QueryLanguageParserT__1)
 		if p.HasError() {
 			// Recognition error - abort rule
@@ -553,19 +648,37 @@ func (p *QueryLanguageParser) List() (localctx IListContext) {
 		}
 	}
 	{
-		p.SetState(26)
+		p.SetState(32)
 		p.Match(QueryLanguageParserT__2)
 		if p.HasError() {
 			// Recognition error - abort rule
 			goto errorExit
 		}
 	}
+	p.SetState(34)
+	p.GetErrorHandler().Sync(p)
+	if p.HasError() {
+		goto errorExit
+	}
+	_la = p.GetTokenStream().LA(1)
+
+	if _la == QueryLanguageParserROWCOUNT {
+		{
+			p.SetState(33)
+			p.Match(QueryLanguageParserROWCOUNT)
+			if p.HasError() {
+				// Recognition error - abort rule
+				goto errorExit
+			}
+		}
+
+	}
 	{
-		p.SetState(27)
+		p.SetState(36)
 		p.TypeSpec()
 	}
 	{
-		p.SetState(28)
+		p.SetState(37)
 		p.Match(QueryLanguageParserT__3)
 		if p.HasError() {
 			// Recognition error - abort rule
@@ -701,7 +814,7 @@ func (p *QueryLanguageParser) Struct_() (localctx IStructContext) {
 
 	p.EnterOuterAlt(localctx, 1)
 	{
-		p.SetState(30)
+		p.SetState(39)
 		p.Match(QueryLanguageParserT__4)
 		if p.HasError() {
 			// Recognition error - abort rule
@@ -709,7 +822,7 @@ func (p *QueryLanguageParser) Struct_() (localctx IStructContext) {
 		}
 	}
 	{
-		p.SetState(31)
+		p.SetState(40)
 		p.Match(QueryLanguageParserT__2)
 		if p.HasError() {
 			// Recognition error - abort rule
@@ -717,10 +830,10 @@ func (p *QueryLanguageParser) Struct_() (localctx IStructContext) {
 		}
 	}
 	{
-		p.SetState(32)
+		p.SetState(41)
 		p.TypeSpec()
 	}
-	p.SetState(37)
+	p.SetState(46)
 	p.GetErrorHandler().Sync(p)
 	if p.HasError() {
 		goto errorExit
@@ -729,7 +842,7 @@ func (p *QueryLanguageParser) Struct_() (localctx IStructContext) {
 
 	for _la == QueryLanguageParserT__0 {
 		{
-			p.SetState(33)
+			p.SetState(42)
 			p.Match(QueryLanguageParserT__0)
 			if p.HasError() {
 				// Recognition error - abort rule
@@ -737,11 +850,11 @@ func (p *QueryLanguageParser) Struct_() (localctx IStructContext) {
 			}
 		}
 		{
-			p.SetState(34)
+			p.SetState(43)
 			p.TypeSpec()
 		}
 
-		p.SetState(39)
+		p.SetState(48)
 		p.GetErrorHandler().Sync(p)
 		if p.HasError() {
 			goto errorExit
@@ -749,7 +862,7 @@ func (p *QueryLanguageParser) Struct_() (localctx IStructContext) {
 		_la = p.GetTokenStream().LA(1)
 	}
 	{
-		p.SetState(40)
+		p.SetState(49)
 		p.Match(QueryLanguageParserT__3)
 		if p.HasError() {
 			// Recognition error - abort rule
@@ -770,78 +883,78 @@ errorExit:
 	goto errorExit // Trick to prevent compiler error if the label is not used
 }
 
-// IPrimitiveTypeContext is an interface to support dynamic dispatch.
-type IPrimitiveTypeContext interface {
+// ISimpleTypesContext is an interface to support dynamic dispatch.
+type ISimpleTypesContext interface {
 	antlr.ParserRuleContext
 
 	// GetParser returns the parser.
 	GetParser() antlr.Parser
-	// IsPrimitiveTypeContext differentiates from other interfaces.
-	IsPrimitiveTypeContext()
+	// IsSimpleTypesContext differentiates from other interfaces.
+	IsSimpleTypesContext()
 }
 
-type PrimitiveTypeContext struct {
+type SimpleTypesContext struct {
 	antlr.BaseParserRuleContext
 	parser antlr.Parser
 }
 
-func NewEmptyPrimitiveTypeContext() *PrimitiveTypeContext {
-	var p = new(PrimitiveTypeContext)
+func NewEmptySimpleTypesContext() *SimpleTypesContext {
+	var p = new(SimpleTypesContext)
 	antlr.InitBaseParserRuleContext(&p.BaseParserRuleContext, nil, -1)
-	p.RuleIndex = QueryLanguageParserRULE_primitiveType
+	p.RuleIndex = QueryLanguageParserRULE_simpleTypes
 	return p
 }
 
-func InitEmptyPrimitiveTypeContext(p *PrimitiveTypeContext) {
+func InitEmptySimpleTypesContext(p *SimpleTypesContext) {
 	antlr.InitBaseParserRuleContext(&p.BaseParserRuleContext, nil, -1)
-	p.RuleIndex = QueryLanguageParserRULE_primitiveType
+	p.RuleIndex = QueryLanguageParserRULE_simpleTypes
 }
 
-func (*PrimitiveTypeContext) IsPrimitiveTypeContext() {}
+func (*SimpleTypesContext) IsSimpleTypesContext() {}
 
-func NewPrimitiveTypeContext(parser antlr.Parser, parent antlr.ParserRuleContext, invokingState int) *PrimitiveTypeContext {
-	var p = new(PrimitiveTypeContext)
+func NewSimpleTypesContext(parser antlr.Parser, parent antlr.ParserRuleContext, invokingState int) *SimpleTypesContext {
+	var p = new(SimpleTypesContext)
 
 	antlr.InitBaseParserRuleContext(&p.BaseParserRuleContext, parent, invokingState)
 
 	p.parser = parser
-	p.RuleIndex = QueryLanguageParserRULE_primitiveType
+	p.RuleIndex = QueryLanguageParserRULE_simpleTypes
 
 	return p
 }
 
-func (s *PrimitiveTypeContext) GetParser() antlr.Parser { return s.parser }
-func (s *PrimitiveTypeContext) GetRuleContext() antlr.RuleContext {
+func (s *SimpleTypesContext) GetParser() antlr.Parser { return s.parser }
+func (s *SimpleTypesContext) GetRuleContext() antlr.RuleContext {
 	return s
 }
 
-func (s *PrimitiveTypeContext) ToStringTree(ruleNames []string, recog antlr.Recognizer) string {
+func (s *SimpleTypesContext) ToStringTree(ruleNames []string, recog antlr.Recognizer) string {
 	return antlr.TreesStringTree(s, ruleNames, recog)
 }
 
-func (s *PrimitiveTypeContext) EnterRule(listener antlr.ParseTreeListener) {
+func (s *SimpleTypesContext) EnterRule(listener antlr.ParseTreeListener) {
 	if listenerT, ok := listener.(QueryLanguageListener); ok {
-		listenerT.EnterPrimitiveType(s)
+		listenerT.EnterSimpleTypes(s)
 	}
 }
 
-func (s *PrimitiveTypeContext) ExitRule(listener antlr.ParseTreeListener) {
+func (s *SimpleTypesContext) ExitRule(listener antlr.ParseTreeListener) {
 	if listenerT, ok := listener.(QueryLanguageListener); ok {
-		listenerT.ExitPrimitiveType(s)
+		listenerT.ExitSimpleTypes(s)
 	}
 }
 
-func (p *QueryLanguageParser) PrimitiveType() (localctx IPrimitiveTypeContext) {
-	localctx = NewPrimitiveTypeContext(p, p.GetParserRuleContext(), p.GetState())
-	p.EnterRule(localctx, 8, QueryLanguageParserRULE_primitiveType)
+func (p *QueryLanguageParser) SimpleTypes() (localctx ISimpleTypesContext) {
+	localctx = NewSimpleTypesContext(p, p.GetParserRuleContext(), p.GetState())
+	p.EnterRule(localctx, 8, QueryLanguageParserRULE_simpleTypes)
 	var _la int
 
 	p.EnterOuterAlt(localctx, 1)
 	{
-		p.SetState(42)
+		p.SetState(51)
 		_la = p.GetTokenStream().LA(1)
 
-		if !((int64(_la) & ^0x3f) == 0 && ((int64(1)<<_la)&448) != 0) {
+		if !((int64(_la) & ^0x3f) == 0 && ((int64(1)<<_la)&274877906880) != 0) {
 			p.GetErrorHandler().RecoverInline(p)
 		} else {
 			p.GetErrorHandler().ReportMatch(p)

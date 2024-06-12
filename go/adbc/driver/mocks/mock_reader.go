@@ -131,7 +131,7 @@ type QueryListener struct {
 	typeStack []arrow.DataType
 }
 
-func (l *QueryListener) EnterPrimitiveType(ctx *parser.PrimitiveTypeContext) {
+func (l *QueryListener) EnterSimpleType(ctx *parser.SimpleTypesContext) {
 	typeName := ctx.GetText()
 	if dataType, ok := availableTypes[typeName]; ok {
 		l.typeStack = append(l.typeStack, dataType.Type)

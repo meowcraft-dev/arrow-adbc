@@ -20,8 +20,8 @@ type QueryLanguageListener interface {
 	// EnterStruct is called when entering the struct production.
 	EnterStruct(c *StructContext)
 
-	// EnterPrimitiveType is called when entering the primitiveType production.
-	EnterPrimitiveType(c *PrimitiveTypeContext)
+	// EnterSimpleTypes is called when entering the simpleTypes production.
+	EnterSimpleTypes(c *SimpleTypesContext)
 
 	// ExitQuery is called when exiting the query production.
 	ExitQuery(c *QueryContext)
@@ -35,6 +35,6 @@ type QueryLanguageListener interface {
 	// ExitStruct is called when exiting the struct production.
 	ExitStruct(c *StructContext)
 
-	// ExitPrimitiveType is called when exiting the primitiveType production.
-	ExitPrimitiveType(c *PrimitiveTypeContext)
+	// ExitSimpleTypes is called when exiting the simpleTypes production.
+	ExitSimpleTypes(c *SimpleTypesContext)
 }

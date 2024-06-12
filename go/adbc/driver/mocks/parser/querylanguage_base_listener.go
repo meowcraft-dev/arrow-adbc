@@ -45,8 +45,8 @@ func (s *BaseQueryLanguageListener) EnterStruct(ctx *StructContext) {}
 // ExitStruct is called when production struct is exited.
 func (s *BaseQueryLanguageListener) ExitStruct(ctx *StructContext) {}
 
-// EnterPrimitiveType is called when production primitiveType is entered.
-func (s *BaseQueryLanguageListener) EnterPrimitiveType(ctx *PrimitiveTypeContext) {}
+// EnterSimpleTypes is called when production simpleTypes is entered.
+func (s *BaseQueryLanguageListener) EnterSimpleTypes(ctx *SimpleTypesContext) {}
 
-// ExitPrimitiveType is called when production primitiveType is exited.
-func (s *BaseQueryLanguageListener) ExitPrimitiveType(ctx *PrimitiveTypeContext) {}
+// ExitSimpleTypes is called when production simpleTypes is exited.
+func (s *BaseQueryLanguageListener) ExitSimpleTypes(ctx *SimpleTypesContext) {}

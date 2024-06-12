@@ -132,11 +132,26 @@ var (
 type QueryListener struct {
 	*parser.BaseQueryLanguageListener
 	typeStack []arrow.DataType
+	fields []arrow.Field
 	rows      int
 }
 
-func (l *QueryListener) EnterTypeSpec(ctx *parser.TypeSpecContext) {
+func (l *QueryListener) ExitTypeSpec(ctx *parser.TypeSpecContext) {
 	log.Printf("TypeSpec: %s", ctx.GetText())
+	fieldName := "default"
+	fieldNameNode := ctx.FIELDNAME()
+
+	if fieldNameNode != nil {
+		fieldName = fieldNameNode.GetText()[1:]
+	}
+
+	l.fields = append(l.fields, arrow.Field{
+		Name: fieldName,
+		Type: l.typeStack[len(l.typeStack)-1],
+	})
+	log.Printf("Created field: %v", l.fields[len(l.fields)-1])
+
+	l.typeStack = l.typeStack[:len(l.typeStack)-1]
 }
 
 func (l *QueryListener) EnterSimpleTypes(ctx *parser.SimpleTypesContext) {
@@ -159,6 +174,11 @@ func (l *QueryListener) ExitList(ctx *parser.ListContext) {
 }
 
 func (l* QueryListener)ExitQuery(ctx *parser.QueryContext) {
+	// Typestack should be empty now if everything went well
+	if len(l.typeStack) != 0 {
+		panic(fmt.Sprintf("Typestack not empty: %v", l.typeStack))
+	}
+
 	log.Printf("Query finished, types: %v", l.typeStack)
 	rowCountNode := ctx.ROWCOUNT()
 	if rowCountNode != nil {
@@ -191,22 +211,13 @@ func NewMockReader(query string) (*mockReader, error) {
 	parser.AddErrorListener(antlr.NewDiagnosticErrorListener(true))
 	antlr.ParseTreeWalkerDefault.Walk(listener, parser.Query())
 
-	if len(listener.typeStack) == 0 {
-		return nil, fmt.Errorf("no types found in query")
+	if len(listener.fields) == 0 {
+		return nil, fmt.Errorf("the query does not contain any fields")
 	}
 
 	log.Printf("Parsed query into types: %v", listener.typeStack)
 
-	fields := make([]arrow.Field, len(listener.typeStack))
-
-	for i, t := range listener.typeStack {
-		log.Printf("Creating field %d with type %v", i, t)
-		fields[i] = arrow.Field{
-			Name: fmt.Sprintf("field_%d", i),
-			Type: t,
-		}
-	}
-	schema := arrow.NewSchema(fields, nil)
+	schema := arrow.NewSchema(listener.fields, nil)
 
 	log.Printf("Created schema: %v", schema)
 

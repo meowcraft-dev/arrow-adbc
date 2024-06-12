@@ -19,6 +19,9 @@ package mocks
 
 import (
 	"fmt"
+	"log"
+	"strconv"
+	"strings"
 	"sync/atomic"
 
 	"github.com/antlr4-go/antlr/v4"
@@ -129,12 +132,21 @@ var (
 type QueryListener struct {
 	*parser.BaseQueryLanguageListener
 	typeStack []arrow.DataType
+	rows      int
 }
 
-func (l *QueryListener) EnterSimpleType(ctx *parser.SimpleTypesContext) {
+func (l *QueryListener) EnterTypeSpec(ctx *parser.TypeSpecContext) {
+	log.Printf("TypeSpec: %s", ctx.GetText())
+}
+
+func (l *QueryListener) EnterSimpleTypes(ctx *parser.SimpleTypesContext) {
 	typeName := ctx.GetText()
+	log.Printf("Entering simple type: %s", typeName)
 	if dataType, ok := availableTypes[typeName]; ok {
+		log.Printf("Adding data type: %v", dataType.Type)
 		l.typeStack = append(l.typeStack, dataType.Type)
+	} else {
+		log.Printf("Unknown data type: %s", typeName)
 	}
 }
 
@@ -146,21 +158,49 @@ func (l *QueryListener) ExitList(ctx *parser.ListContext) {
 	l.typeStack = append(l.typeStack, thisList)
 }
 
+func (l* QueryListener)ExitQuery(ctx *parser.QueryContext) {
+	log.Printf("Query finished, types: %v", l.typeStack)
+	rowCountNode := ctx.ROWCOUNT()
+	if rowCountNode != nil {
+		rowCountStr := strings.Split(rowCountNode.GetText(),":")[0]
+		rowCount, err := strconv.Atoi(rowCountStr)
+		if err != nil {
+			panic(fmt.Sprintf("Invalid row count in query: %s, check parser", rowCountStr))
+		}
+		l.rows = rowCount
+	} else {
+		l.rows = 1
+	}
+	log.Printf("Query finished, rows: %d", l.rows)
+}
+
 // NewMockReader Creates a mockReader according to the query.
 // The query should be a list of types separated by commas
 // The returned mockReader will have the types in the same order
 func NewMockReader(query string) (*mockReader, error) {
+	log.Printf("Creating mock reader for query: %s", query)
+
 	inputStream := antlr.NewInputStream(query)
 	lexer := parser.NewQueryLanguageLexer(inputStream)
 	tokenStream := antlr.NewCommonTokenStream(lexer, antlr.TokenDefaultChannel)
 	parser := parser.NewQueryLanguageParser(tokenStream)
 
 	listener := &QueryListener{}
+	log.Println("Walking query tree")
+
+	parser.AddErrorListener(antlr.NewDiagnosticErrorListener(true))
 	antlr.ParseTreeWalkerDefault.Walk(listener, parser.Query())
+
+	if len(listener.typeStack) == 0 {
+		return nil, fmt.Errorf("no types found in query")
+	}
+
+	log.Printf("Parsed query into types: %v", listener.typeStack)
 
 	fields := make([]arrow.Field, len(listener.typeStack))
 
 	for i, t := range listener.typeStack {
+		log.Printf("Creating field %d with type %v", i, t)
 		fields[i] = arrow.Field{
 			Name: fmt.Sprintf("field_%d", i),
 			Type: t,
@@ -168,7 +208,11 @@ func NewMockReader(query string) (*mockReader, error) {
 	}
 	schema := arrow.NewSchema(fields, nil)
 
-	mockData := PopulateSchema(schema)
+	log.Printf("Created schema: %v", schema)
+
+	mockData := PopulateSchema(schema, listener.rows)
+
+	log.Printf("Populated schema with data: %v", mockData)
 
 	return &mockReader{
 		refCount:           1,

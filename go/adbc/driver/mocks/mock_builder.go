@@ -88,13 +88,13 @@ func mockUint8(field arrow.Field, rows int) arrow.Array {
 	return builder.NewArray()
 }
 
-func PopulateSchema(schema *arrow.Schema) arrow.Record {
+func PopulateSchema(schema *arrow.Schema, rows int) arrow.Record {
 
 	cols := make([]arrow.Array, len(schema.Fields()))
 
 	for i, field := range schema.Fields() {
-		cols[i] = handlerForType[int(field.Type.ID())](field, 10)
+		cols[i] = handlerForType[int(field.Type.ID())](field, rows)
 	}
 
-	return array.NewRecord(schema, cols, 10)
+	return array.NewRecord(schema, cols, int64(rows))
 }

@@ -33,6 +33,12 @@ func (s *BaseQueryLanguageListener) EnterFields(ctx *FieldsContext) {}
 // ExitFields is called when production fields is exited.
 func (s *BaseQueryLanguageListener) ExitFields(ctx *FieldsContext) {}
 
+// EnterStructFields is called when production structFields is entered.
+func (s *BaseQueryLanguageListener) EnterStructFields(ctx *StructFieldsContext) {}
+
+// ExitStructFields is called when production structFields is exited.
+func (s *BaseQueryLanguageListener) ExitStructFields(ctx *StructFieldsContext) {}
+
 // EnterInnerType is called when production innerType is entered.
 func (s *BaseQueryLanguageListener) EnterInnerType(ctx *InnerTypeContext) {}
 

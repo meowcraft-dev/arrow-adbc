@@ -23,6 +23,7 @@ import (
 	"math"
 	"math/big"
 	"strconv"
+	"time"
 
 	"github.com/apache/arrow/go/v17/arrow"
 	"github.com/apache/arrow/go/v17/arrow/array"
@@ -52,8 +53,8 @@ func init(){
 		int(arrow.STRING):            mockString,
 		int(arrow.BINARY):            mockBinary,
 		int(arrow.FIXED_SIZE_BINARY): mockFixedSizeBinary,
-		// int(arrow.DATE32):            mockDate32,
-		// int(arrow.DATE64):            mockDate64,
+		int(arrow.DATE32):            mockDate32,
+		int(arrow.DATE64):            mockDate64,
 		//
 		// commented out until mock function implemented
 		//
@@ -228,6 +229,26 @@ func mockFixedSizeBinary(field arrow.Field, rows int) arrow.Array {
 		strBytes := []byte(numStr)
 		paddingBytes := make([]byte, byteWidth-len(strBytes))
 		builder.Append(append(paddingBytes, strBytes...))
+	}
+
+	return builder.NewArray()
+}
+
+func mockDate32(field arrow.Field, rows int) arrow.Array {
+	builder := array.NewDate32Builder(memory.DefaultAllocator)
+
+	for i := 0; i < rows; i++ {
+		builder.Append(arrow.Date32FromTime(time.Date(1984, 1, 1, 0, 0, 0, 0, time.UTC).AddDate(0, 0, i)))
+	}
+
+	return builder.NewArray()
+}
+
+func mockDate64(field arrow.Field, rows int) arrow.Array {
+	builder := array.NewDate64Builder(memory.DefaultAllocator)
+
+	for i := 0; i < rows; i++ {
+		builder.Append(arrow.Date64FromTime(time.Date(1984, 1, 1, 0, 0, 0, 0, time.UTC).AddDate(0, 0, i)))
 	}
 
 	return builder.NewArray()

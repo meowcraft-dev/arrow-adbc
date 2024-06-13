@@ -26,6 +26,15 @@ type QueryLanguageListener interface {
 	// EnterStruct is called when entering the struct production.
 	EnterStruct(c *StructContext)
 
+	// EnterFixedSizeBinary is called when entering the fixedSizeBinary production.
+	EnterFixedSizeBinary(c *FixedSizeBinaryContext)
+
+	// EnterDecimal128 is called when entering the decimal128 production.
+	EnterDecimal128(c *Decimal128Context)
+
+	// EnterDecimal256 is called when entering the decimal256 production.
+	EnterDecimal256(c *Decimal256Context)
+
 	// EnterSimpleTypes is called when entering the simpleTypes production.
 	EnterSimpleTypes(c *SimpleTypesContext)
 
@@ -46,6 +55,15 @@ type QueryLanguageListener interface {
 
 	// ExitStruct is called when exiting the struct production.
 	ExitStruct(c *StructContext)
+
+	// ExitFixedSizeBinary is called when exiting the fixedSizeBinary production.
+	ExitFixedSizeBinary(c *FixedSizeBinaryContext)
+
+	// ExitDecimal128 is called when exiting the decimal128 production.
+	ExitDecimal128(c *Decimal128Context)
+
+	// ExitDecimal256 is called when exiting the decimal256 production.
+	ExitDecimal256(c *Decimal256Context)
 
 	// ExitSimpleTypes is called when exiting the simpleTypes production.
 	ExitSimpleTypes(c *SimpleTypesContext)

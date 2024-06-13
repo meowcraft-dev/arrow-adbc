@@ -20,10 +20,14 @@ package mocks
 import (
 	"encoding/binary"
 	"log"
+	"math"
+	"math/big"
 	"strconv"
 
 	"github.com/apache/arrow/go/v17/arrow"
 	"github.com/apache/arrow/go/v17/arrow/array"
+	"github.com/apache/arrow/go/v17/arrow/decimal128"
+	"github.com/apache/arrow/go/v17/arrow/decimal256"
 	"github.com/apache/arrow/go/v17/arrow/float16"
 	"github.com/apache/arrow/go/v17/arrow/memory"
 )
@@ -47,7 +51,7 @@ func init(){
 		int(arrow.FLOAT64):           mockFloat64,
 		int(arrow.STRING):            mockString,
 		int(arrow.BINARY):            mockBinary,
-		// int(arrow.FIXED_SIZE_BINARY): mockFixedSizeBinary,
+		int(arrow.FIXED_SIZE_BINARY): mockFixedSizeBinary,
 		// int(arrow.DATE32):            mockDate32,
 		// int(arrow.DATE64):            mockDate64,
 		//
@@ -58,8 +62,8 @@ func init(){
 		// int(arrow.TIME64):   mockTime64,
 		// int(arrow.INTERVAL_MONTHS): mockIntervalMonth,
 		// int(arrow.INTERVAL_DAY_TIME): mockIntervalDayTime,
-		// int(arrow.DECIMAL128): mockDecimal128,
-		// int(arrow.DECIMAL256): mockDecimal256,
+		int(arrow.DECIMAL128): mockDecimal128,
+		int(arrow.DECIMAL256): mockDecimal256,
 		int(arrow.LIST):      mockList,
 		int(arrow.STRUCT):    mockStruct,
 		// int(arrow.SPARSE_UNION): mockSparseUnion,
@@ -210,6 +214,40 @@ func mockBinary(field arrow.Field, rows int) arrow.Array {
 
 	for i := 0; i < rows; i++ {
 		builder.Append([]byte(strconv.Itoa(i)))
+	}
+
+	return builder.NewArray()
+}
+
+func mockFixedSizeBinary(field arrow.Field, rows int) arrow.Array {
+	builder := array.NewFixedSizeBinaryBuilder(memory.DefaultAllocator,field.Type.(*arrow.FixedSizeBinaryType))
+	byteWidth := field.Type.(*arrow.FixedSizeBinaryType).ByteWidth
+
+	for i := 0; i < rows; i++ {
+		numStr := strconv.Itoa(i)
+		strBytes := []byte(numStr)
+		paddingBytes := make([]byte, byteWidth-len(strBytes))
+		builder.Append(append(paddingBytes, strBytes...))
+	}
+
+	return builder.NewArray()
+}
+
+func mockDecimal128(field arrow.Field, rows int) arrow.Array {
+	builder := array.NewDecimal128Builder(memory.DefaultAllocator, field.Type.(*arrow.Decimal128Type))
+	number := big.NewInt(math.MaxInt64)
+	for i := 0; i < rows; i++ {
+		builder.Append(decimal128.FromBigInt(number.Add(number, big.NewInt(int64(i)))))
+	}
+
+	return builder.NewArray()
+}
+
+func mockDecimal256(field arrow.Field, rows int) arrow.Array {
+	builder := array.NewDecimal256Builder(memory.DefaultAllocator, field.Type.(*arrow.Decimal256Type))
+	number := big.NewInt(math.MaxInt64)
+	for i := 0; i < rows; i++ {
+		builder.Append(decimal256.FromBigInt(number.Add(number, big.NewInt(int64(i)))))
 	}
 
 	return builder.NewArray()

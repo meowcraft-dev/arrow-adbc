@@ -2,13 +2,30 @@ grammar QueryLanguage;
 
 query: (ROWCOUNT)? fields (',' fields)* EOF;
 
-fields: (simpleTypes | list | struct) (FIELDNAME)?;
-structFields: (simpleTypes | list | struct) (FIELDNAME)?;
+fields: (
+		simpleTypes
+		| list
+		| struct
+		| fixedSizeBinary
+		| decimal128
+		| decimal256
+	) (FIELDNAME)?;
+structFields: (
+		simpleTypes
+		| list
+		| struct
+		| fixedSizeBinary
+		| decimal128
+		| decimal256
+	) (FIELDNAME)?;
 
 innerType: simpleTypes | list | struct;
 
 list: 'list' '<' (ROWCOUNT)? innerType '>';
 struct: 'struct' '<' structFields (',' structFields)* '>';
+fixedSizeBinary: 'fixed_size_binary' '<' BYTEWIDTH '>';
+decimal128: 'decimal128' '<' DECIMALPS '>';
+decimal256: 'decimal128' '<' DECIMALPS '>';
 
 simpleTypes:
 	'uint8'
@@ -44,9 +61,13 @@ simpleTypes:
 	| 'interval_monthdaynano'
 	| 'null';
 
-WS: [ \t\r\n]+ -> skip;
+DECIMALPS: POSITIVE_INT ':' POSITIVE_INT;
 
-ROWCOUNT: [1-9][0-9]* ':';
+ROWCOUNT: POSITIVE_INT ':';
+BYTEWIDTH: POSITIVE_INT;
 FIELDNAME: '#' IDENTIFIER;
 
+WS: [ \t\r\n]+ -> skip;
+
 fragment IDENTIFIER: [a-zA-Z_][a-zA-Z0-9_]*;
+fragment POSITIVE_INT: [1-9][0-9]*;

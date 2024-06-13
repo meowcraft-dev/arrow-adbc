@@ -53,7 +53,6 @@ var (
 		"float64":               {Name: "float64", Type: arrow.PrimitiveTypes.Float64},
 		"binary":                {Name: "binary", Type: arrow.BinaryTypes.Binary},
 		"string":                {Name: "string", Type: arrow.BinaryTypes.String},
-		"fixed_size_binary":     {Name: "fixed_size_binary", Type: &arrow.FixedSizeBinaryType{ByteWidth: 5}},
 		"date32":                {Name: "date32", Type: arrow.PrimitiveTypes.Date32},
 		"date64":                {Name: "date64", Type: arrow.PrimitiveTypes.Date64},
 		"bool":                  {Name: "bool", Type: arrow.FixedWidthTypes.Boolean},
@@ -72,8 +71,6 @@ var (
 		"interval_month":        {Name: "interval_month", Type: arrow.FixedWidthTypes.MonthInterval},
 		"interval_daytime":      {Name: "interval_daytime", Type: arrow.FixedWidthTypes.DayTimeInterval},
 		"interval_monthdaynano": {Name: "interval_monthdaynano", Type: arrow.FixedWidthTypes.MonthDayNanoInterval},
-		"decimal128":            {Name: "decimal128", Type: &arrow.Decimal128Type{Precision: 37, Scale: 2}},
-		"decimal256":            {Name: "decimal256", Type: &arrow.Decimal256Type{Precision: 76, Scale: 4}},
 		"null": {Name: "null", Type: arrow.Null},
 	}
 )
@@ -131,6 +128,42 @@ func (l *QueryListener) EnterSimpleTypes(ctx *parser.SimpleTypesContext) {
 	} else {
 		log.Printf("Unknown data type: %s", typeName)
 	}
+}
+
+func (l *QueryListener) ExitFixedSizeBinary(ctx *parser.FixedSizeBinaryContext) {
+	byteWidthStr := ctx.BYTEWIDTH()
+	if byteWidth, err := strconv.Atoi(byteWidthStr.GetText()); err != nil {
+		panic(fmt.Sprintf("Invalid byte width: %s, check parser", byteWidthStr.GetText()))
+	} else {
+		l.typeStack = append(l.typeStack, &arrow.FixedSizeBinaryType{ByteWidth: byteWidth})
+	}
+}
+
+func parsePercisionAndScale(scaleStr string) (int32, int32) {
+	split := strings.Split(scaleStr, ":")
+	precision, err := strconv.Atoi(split[0])
+	if err != nil {
+		panic(fmt.Sprintf("Invalid precision: %s, check parser", split[0]))
+	}
+	scale, err := strconv.Atoi(split[1])
+	if err != nil {
+		panic(fmt.Sprintf("Invalid scale: %s, check parser", split[1]))
+	}
+	return int32(precision), int32(scale)
+}
+
+func (l *QueryListener) ExitDecimal128(ctx *parser.Decimal128Context) {
+	precisionScaleStr := ctx.DECIMALPS()
+	precision, scale := parsePercisionAndScale(precisionScaleStr.GetText())
+	// TODO check if presicion and scale are valid
+	l.typeStack = append(l.typeStack, &arrow.Decimal128Type{Precision: precision, Scale: scale})
+}
+
+func (l *QueryListener) ExitDecimal256(ctx *parser.Decimal256Context) {
+	precisionScaleStr := ctx.DECIMALPS()
+	precision, scale := parsePercisionAndScale(precisionScaleStr.GetText())
+	// TODO check if presicion and scale are valid
+	l.typeStack = append(l.typeStack, &arrow.Decimal256Type{Precision: precision, Scale: scale})
 }
 
 func (l *QueryListener) EnterList(ctx *parser.ListContext) {

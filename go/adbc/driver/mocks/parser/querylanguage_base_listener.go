@@ -57,6 +57,24 @@ func (s *BaseQueryLanguageListener) EnterStruct(ctx *StructContext) {}
 // ExitStruct is called when production struct is exited.
 func (s *BaseQueryLanguageListener) ExitStruct(ctx *StructContext) {}
 
+// EnterFixedSizeBinary is called when production fixedSizeBinary is entered.
+func (s *BaseQueryLanguageListener) EnterFixedSizeBinary(ctx *FixedSizeBinaryContext) {}
+
+// ExitFixedSizeBinary is called when production fixedSizeBinary is exited.
+func (s *BaseQueryLanguageListener) ExitFixedSizeBinary(ctx *FixedSizeBinaryContext) {}
+
+// EnterDecimal128 is called when production decimal128 is entered.
+func (s *BaseQueryLanguageListener) EnterDecimal128(ctx *Decimal128Context) {}
+
+// ExitDecimal128 is called when production decimal128 is exited.
+func (s *BaseQueryLanguageListener) ExitDecimal128(ctx *Decimal128Context) {}
+
+// EnterDecimal256 is called when production decimal256 is entered.
+func (s *BaseQueryLanguageListener) EnterDecimal256(ctx *Decimal256Context) {}
+
+// ExitDecimal256 is called when production decimal256 is exited.
+func (s *BaseQueryLanguageListener) ExitDecimal256(ctx *Decimal256Context) {}
+
 // EnterSimpleTypes is called when production simpleTypes is entered.
 func (s *BaseQueryLanguageListener) EnterSimpleTypes(ctx *SimpleTypesContext) {}
 

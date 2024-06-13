@@ -1,11 +1,13 @@
 grammar QueryLanguage;
 
-query: (ROWCOUNT)? typeSpec (',' typeSpec)* EOF;
+query: (ROWCOUNT)? fields (',' fields)* EOF;
 
-typeSpec: (simpleTypes | list | struct) (FIELDNAME)?;
+fields: (simpleTypes | list | struct) (FIELDNAME)?;
 
-list: 'list' '<' (ROWCOUNT)? typeSpec '>';
-struct: 'struct' '<' typeSpec (',' typeSpec)* '>';
+innerType: simpleTypes | list | struct;
+
+list: 'list' '<' (ROWCOUNT)? innerType '>';
+struct: 'struct' '<' innerType (',' innerType)* '>';
 
 simpleTypes:
 	'uint8'

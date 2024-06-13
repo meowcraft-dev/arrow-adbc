@@ -27,11 +27,17 @@ func (s *BaseQueryLanguageListener) EnterQuery(ctx *QueryContext) {}
 // ExitQuery is called when production query is exited.
 func (s *BaseQueryLanguageListener) ExitQuery(ctx *QueryContext) {}
 
-// EnterTypeSpec is called when production typeSpec is entered.
-func (s *BaseQueryLanguageListener) EnterTypeSpec(ctx *TypeSpecContext) {}
+// EnterFields is called when production fields is entered.
+func (s *BaseQueryLanguageListener) EnterFields(ctx *FieldsContext) {}
 
-// ExitTypeSpec is called when production typeSpec is exited.
-func (s *BaseQueryLanguageListener) ExitTypeSpec(ctx *TypeSpecContext) {}
+// ExitFields is called when production fields is exited.
+func (s *BaseQueryLanguageListener) ExitFields(ctx *FieldsContext) {}
+
+// EnterInnerType is called when production innerType is entered.
+func (s *BaseQueryLanguageListener) EnterInnerType(ctx *InnerTypeContext) {}
+
+// ExitInnerType is called when production innerType is exited.
+func (s *BaseQueryLanguageListener) ExitInnerType(ctx *InnerTypeContext) {}
 
 // EnterList is called when production list is entered.
 func (s *BaseQueryLanguageListener) EnterList(ctx *ListContext) {}

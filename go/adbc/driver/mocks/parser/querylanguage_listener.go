@@ -14,6 +14,9 @@ type QueryLanguageListener interface {
 	// EnterFields is called when entering the fields production.
 	EnterFields(c *FieldsContext)
 
+	// EnterStructFields is called when entering the structFields production.
+	EnterStructFields(c *StructFieldsContext)
+
 	// EnterInnerType is called when entering the innerType production.
 	EnterInnerType(c *InnerTypeContext)
 
@@ -31,6 +34,9 @@ type QueryLanguageListener interface {
 
 	// ExitFields is called when exiting the fields production.
 	ExitFields(c *FieldsContext)
+
+	// ExitStructFields is called when exiting the structFields production.
+	ExitStructFields(c *StructFieldsContext)
 
 	// ExitInnerType is called when exiting the innerType production.
 	ExitInnerType(c *InnerTypeContext)

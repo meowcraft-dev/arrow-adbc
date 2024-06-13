@@ -3,11 +3,12 @@ grammar QueryLanguage;
 query: (ROWCOUNT)? fields (',' fields)* EOF;
 
 fields: (simpleTypes | list | struct) (FIELDNAME)?;
+structFields: (simpleTypes | list | struct) (FIELDNAME)?;
 
 innerType: simpleTypes | list | struct;
 
 list: 'list' '<' (ROWCOUNT)? innerType '>';
-struct: 'struct' '<' innerType (',' innerType)* '>';
+struct: 'struct' '<' structFields (',' structFields)* '>';
 
 simpleTypes:
 	'uint8'

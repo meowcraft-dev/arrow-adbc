@@ -19,6 +19,7 @@ package mocks
 
 import (
 	"encoding/binary"
+	"log"
 	"strconv"
 
 	"github.com/apache/arrow/go/v17/arrow"
@@ -60,7 +61,7 @@ func init(){
 		// int(arrow.DECIMAL128): mockDecimal128,
 		// int(arrow.DECIMAL256): mockDecimal256,
 		int(arrow.LIST):      mockList,
-		// int(arrow.STRUCT):    mockStruct,
+		int(arrow.STRUCT):    mockStruct,
 		// int(arrow.SPARSE_UNION): mockSparseUnion,
 		// int(arrow.DENSE_UNION):  mockDenseUnion,
 		// int(arrow.DICTIONARY):   mockDictionary,
@@ -242,6 +243,24 @@ func mockList(field arrow.Field, rows int) arrow.Array {
 	arrData := array.NewData(field.Type,rows,[]*memory.Buffer{nil,offsetsBuffer },[]arrow.ArrayData{innerValue.Data()},0,0)
 
 	return array.NewListData(arrData)
+}
+
+func mockStruct(field arrow.Field, rows int) arrow.Array {
+
+	structType := field.Type.(*arrow.StructType)
+	log.Printf("Struct type: %v", structType)
+	log.Printf("Fields: %v", structType.Fields())
+
+	innerDatas := make([]arrow.ArrayData, structType.NumFields())
+
+	for i := 0; i < structType.NumFields(); i++ {
+		innerField := structType.Field(i)
+		innerDatas[i] = handlerForType[int(innerField.Type.ID())](innerField, rows).Data()
+	}
+
+	structData := array.NewData(field.Type, rows, []*memory.Buffer{nil}, innerDatas, 0, 0)
+
+	return array.NewStructData(structData)
 }
 
 func PopulateSchema(schema *arrow.Schema, rows int) arrow.Record {

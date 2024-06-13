@@ -81,8 +81,27 @@ var (
 type QueryListener struct {
 	*parser.BaseQueryLanguageListener
 	typeStack []arrow.DataType
-	fields []arrow.Field
+	fields []*arrow.Field
 	rows      int
+}
+
+func (l *QueryListener) ExitStructFields(ctx *parser.StructFieldsContext) {
+	// Currently is the same as fields
+	log.Printf("Exiting struct fields: %s", ctx.GetText())
+	fieldName := "default_s"
+	fieldNameNode := ctx.FIELDNAME()
+
+	if fieldNameNode != nil {
+		fieldName = fieldNameNode.GetText()[1:]
+	}
+
+	l.fields = append(l.fields, &arrow.Field{
+		Name: fieldName,
+		Type: l.typeStack[len(l.typeStack)-1],
+	})
+	log.Printf("Created struct field: %v", l.fields[len(l.fields)-1])
+
+	l.typeStack = l.typeStack[:len(l.typeStack)-1]
 }
 
 func (l *QueryListener) ExitFields(ctx *parser.FieldsContext) {
@@ -94,7 +113,7 @@ func (l *QueryListener) ExitFields(ctx *parser.FieldsContext) {
 		fieldName = fieldNameNode.GetText()[1:]
 	}
 
-	l.fields = append(l.fields, arrow.Field{
+	l.fields = append(l.fields, &arrow.Field{
 		Name: fieldName,
 		Type: l.typeStack[len(l.typeStack)-1],
 	})
@@ -118,6 +137,11 @@ func (l *QueryListener) EnterList(ctx *parser.ListContext) {
 	log.Printf("Entering list")
 }
 
+func (l *QueryListener) EnterStruct(ctx *parser.StructContext) {
+	log.Printf("Entering struct")
+	l.fields = append(l.fields, nil)
+}
+
 func (l *QueryListener) ExitList(ctx *parser.ListContext) {
 	innerType := l.typeStack[len(l.typeStack)-1]
 	log.Printf("Exiting list, Inner type: %v", innerType)
@@ -138,6 +162,21 @@ func (l *QueryListener) ExitList(ctx *parser.ListContext) {
 	thisList.SetElemMetadata(md)
 	l.typeStack = append(l.typeStack, thisList)
 	log.Printf("Added list: %v", thisList)
+}
+
+func (l *QueryListener) ExitStruct(ctx *parser.StructContext) {
+	log.Printf("Exiting struct")
+	structFields := make([]arrow.Field, 0);
+	// struct can have multiple fields, so we keep popping until reaching struct start(nil)
+	for l.fields[len(l.fields)-1] != nil {
+		structFields = append(structFields, *l.fields[len(l.fields)-1])
+		l.fields = l.fields[:len(l.fields)-1]
+	}
+	l.fields = l.fields[:len(l.fields)-1]
+
+	thisStruct := arrow.StructOf(structFields...)
+	l.typeStack = append(l.typeStack, thisStruct)
+	log.Printf("Added struct: %v", thisStruct)
 }
 
 func (l* QueryListener)ExitQuery(ctx *parser.QueryContext) {
@@ -184,7 +223,11 @@ func NewMockReader(query string) (*mockReader, error) {
 
 	log.Printf("Parsed query into types: %v", listener.typeStack)
 
-	schema := arrow.NewSchema(listener.fields, nil)
+	fieldsCopy := make([]arrow.Field, len(listener.fields))
+	for i, field := range listener.fields {
+		fieldsCopy[i] = *field 
+	}
+	schema := arrow.NewSchema(fieldsCopy, nil)
 
 	log.Printf("Created schema: %v", schema)
 

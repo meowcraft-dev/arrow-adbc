@@ -74,57 +74,6 @@ var (
 		"interval_monthdaynano": {Name: "interval_monthdaynano", Type: arrow.FixedWidthTypes.MonthDayNanoInterval},
 		"decimal128":            {Name: "decimal128", Type: &arrow.Decimal128Type{Precision: 37, Scale: 2}},
 		"decimal256":            {Name: "decimal256", Type: &arrow.Decimal256Type{Precision: 76, Scale: 4}},
-		"sample_list":           {Name: "sample_list", Type: arrow.ListOf(arrow.PrimitiveTypes.Int32)},
-		"sample_list_with_struct": {Name: "sample_list_with_struct", Type: arrow.ListOf(arrow.StructOf(
-			arrow.Field{Name: "start_time", Type: arrow.FixedWidthTypes.Timestamp_s},
-			arrow.Field{Name: "end_time", Type: arrow.FixedWidthTypes.Timestamp_s},
-			arrow.Field{Name: "data_points", Type: arrow.PrimitiveTypes.Int32},
-		))},
-		"sample_nested_list": {Name: "sample_nested_list", Type: arrow.ListOf(arrow.ListOf(arrow.PrimitiveTypes.Int32))},
-		"sample_list_view":   {Name: "sample_list_view", Type: arrow.ListViewOf(arrow.PrimitiveTypes.Int32)},
-		"sample_large_list_view": {
-			Name: "sample_large_list_view",
-			Type: arrow.LargeListViewOf(arrow.PrimitiveTypes.Int32),
-		},
-		"sample_fixed_size_list": {
-			Name: "sample_fixed_size_list",
-			Type: arrow.FixedSizeListOf(3, arrow.PrimitiveTypes.Int32),
-		},
-		"sample_nested_fixed_size_list": {
-			Name: "sample_nested_fixed_size_list",
-			Type: arrow.FixedSizeListOf(3, arrow.FixedSizeListOf(3, arrow.PrimitiveTypes.Int32)),
-		},
-		"sample_run_end_encoded_array": {
-			Name: "sample_run_end_encoded_array",
-			Type: arrow.RunEndEncodedOf(arrow.PrimitiveTypes.Int32, arrow.PrimitiveTypes.Float32),
-		},
-		"sample_dictionary_encoded_array": {
-			Name: "sample_dictionary_encoded_array",
-			Type: &arrow.DictionaryType{
-				IndexType: arrow.PrimitiveTypes.Int32,
-				ValueType: arrow.BinaryTypes.String,
-			},
-		},
-		"sample_dense_union": {
-			Name: "sample_dense_union",
-			Type: arrow.DenseUnionOf(
-				[]arrow.Field{
-					{Name: "a", Type: arrow.PrimitiveTypes.Int32},
-					{Name: "b", Type: arrow.BinaryTypes.String},
-				},
-				[]arrow.UnionTypeCode{0, 1},
-			),
-		},
-		"sample_sparse_union": {
-			Name: "sample_sparse_union",
-			Type: arrow.SparseUnionOf(
-				[]arrow.Field{
-					{Name: "a", Type: arrow.PrimitiveTypes.Int32},
-					{Name: "b", Type: arrow.BinaryTypes.String},
-				},
-				[]arrow.UnionTypeCode{0, 1},
-			),
-		},
 		"null": {Name: "null", Type: arrow.Null},
 	}
 )
@@ -136,8 +85,8 @@ type QueryListener struct {
 	rows      int
 }
 
-func (l *QueryListener) ExitTypeSpec(ctx *parser.TypeSpecContext) {
-	log.Printf("TypeSpec: %s", ctx.GetText())
+func (l *QueryListener) ExitFields(ctx *parser.FieldsContext) {
+	log.Printf("Exiting fields: %s", ctx.GetText())
 	fieldName := "default"
 	fieldNameNode := ctx.FIELDNAME()
 
@@ -165,12 +114,30 @@ func (l *QueryListener) EnterSimpleTypes(ctx *parser.SimpleTypesContext) {
 	}
 }
 
+func (l *QueryListener) EnterList(ctx *parser.ListContext) {
+	log.Printf("Entering list")
+}
+
 func (l *QueryListener) ExitList(ctx *parser.ListContext) {
 	innerType := l.typeStack[len(l.typeStack)-1]
+	log.Printf("Exiting list, Inner type: %v", innerType)
 	l.typeStack = l.typeStack[:len(l.typeStack)-1]
 
+	listLength := 1
+	if ctx.ROWCOUNT() != nil {
+		rowCountStr := strings.Split(ctx.ROWCOUNT().GetText(),":")[0]
+		rowCount, err := strconv.Atoi(rowCountStr)
+		if err != nil {
+			panic(fmt.Sprintf("Invalid row count in list: %s, check parser", rowCountStr))
+		}
+		listLength = rowCount
+	}
+
 	thisList := arrow.ListOf(innerType)
+	md := arrow.NewMetadata([]string{"list_length"}, []string{fmt.Sprintf("%d", listLength)})
+	thisList.SetElemMetadata(md)
 	l.typeStack = append(l.typeStack, thisList)
+	log.Printf("Added list: %v", thisList)
 }
 
 func (l* QueryListener)ExitQuery(ctx *parser.QueryContext) {

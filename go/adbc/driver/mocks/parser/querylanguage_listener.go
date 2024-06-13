@@ -11,8 +11,11 @@ type QueryLanguageListener interface {
 	// EnterQuery is called when entering the query production.
 	EnterQuery(c *QueryContext)
 
-	// EnterTypeSpec is called when entering the typeSpec production.
-	EnterTypeSpec(c *TypeSpecContext)
+	// EnterFields is called when entering the fields production.
+	EnterFields(c *FieldsContext)
+
+	// EnterInnerType is called when entering the innerType production.
+	EnterInnerType(c *InnerTypeContext)
 
 	// EnterList is called when entering the list production.
 	EnterList(c *ListContext)
@@ -26,8 +29,11 @@ type QueryLanguageListener interface {
 	// ExitQuery is called when exiting the query production.
 	ExitQuery(c *QueryContext)
 
-	// ExitTypeSpec is called when exiting the typeSpec production.
-	ExitTypeSpec(c *TypeSpecContext)
+	// ExitFields is called when exiting the fields production.
+	ExitFields(c *FieldsContext)
+
+	// ExitInnerType is called when exiting the innerType production.
+	ExitInnerType(c *InnerTypeContext)
 
 	// ExitList is called when exiting the list production.
 	ExitList(c *ListContext)

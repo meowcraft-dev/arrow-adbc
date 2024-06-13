@@ -18,6 +18,7 @@
 package mocks
 
 import (
+	"encoding/binary"
 	"strconv"
 
 	"github.com/apache/arrow/go/v17/arrow"
@@ -26,7 +27,9 @@ import (
 	"github.com/apache/arrow/go/v17/arrow/memory"
 )
 
-var (
+var handlerForType map[int]func(field arrow.Field, rows int) arrow.Array
+
+func init(){
 	handlerForType = map[int]func(field arrow.Field, rows int) arrow.Array{
 		int(arrow.NULL):              mockNull,
 		int(arrow.BOOL):              mockBool,
@@ -56,7 +59,7 @@ var (
 		// int(arrow.INTERVAL_DAY_TIME): mockIntervalDayTime,
 		// int(arrow.DECIMAL128): mockDecimal128,
 		// int(arrow.DECIMAL256): mockDecimal256,
-		// int(arrow.LIST):      mockList,
+		int(arrow.LIST):      mockList,
 		// int(arrow.STRUCT):    mockStruct,
 		// int(arrow.SPARSE_UNION): mockSparseUnion,
 		// int(arrow.DENSE_UNION):  mockDenseUnion,
@@ -65,7 +68,7 @@ var (
 		//
 		// TODO: add other types
 	}
-)
+}
 
 func mockNull(field arrow.Field, rows int) arrow.Array {
 	return array.NewNull(rows)
@@ -209,6 +212,36 @@ func mockBinary(field arrow.Field, rows int) arrow.Array {
 	}
 
 	return builder.NewArray()
+}
+
+func mockList(field arrow.Field, rows int) arrow.Array {
+	listType := field.Type.(*arrow.ListType)
+	innerField := listType.ElemField()
+	listLength := 1
+	if listLengthStr, ok := innerField.Metadata.GetValue("list_length"); ok {
+		listLength, _ = strconv.Atoi(listLengthStr)
+	}
+
+	innerValue := handlerForType[int(innerField.Type.ID())](innerField, listLength*rows)
+
+	offsets := make([]int32, rows+1)
+
+	for i := 0; i < rows; i++ {
+		offsets[i] = int32(i * listLength)
+	}
+	offsets[rows] = int32(innerValue.Len())
+
+	offsetBytes := make([]byte, (rows+1)*4)
+
+	for i,v := range offsets {
+		binary.LittleEndian.PutUint32(offsetBytes[i*4:], uint32(v))
+	}
+
+	offsetsBuffer := memory.NewBufferBytes(offsetBytes)
+
+	arrData := array.NewData(field.Type,rows,[]*memory.Buffer{nil,offsetsBuffer },[]arrow.ArrayData{innerValue.Data()},0,0)
+
+	return array.NewListData(arrData)
 }
 
 func PopulateSchema(schema *arrow.Schema, rows int) arrow.Record {

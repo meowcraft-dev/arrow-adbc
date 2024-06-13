@@ -58,11 +58,11 @@ func init(){
 		//
 		// commented out until mock function implemented
 		//
-		// int(arrow.TIMESTAMP): mockTimestamp,
-		// int(arrow.TIME32):   mockTime32,
-		// int(arrow.TIME64):   mockTime64,
-		// int(arrow.INTERVAL_MONTHS): mockIntervalMonth,
-		// int(arrow.INTERVAL_DAY_TIME): mockIntervalDayTime,
+		int(arrow.TIMESTAMP): mockTimestamp,
+		int(arrow.TIME32):   mockTime32,
+		int(arrow.TIME64):   mockTime64,
+		int(arrow.INTERVAL_MONTHS): mockIntervalMonths,
+		int(arrow.INTERVAL_DAY_TIME): mockIntervalDays,
 		int(arrow.DECIMAL128): mockDecimal128,
 		int(arrow.DECIMAL256): mockDecimal256,
 		int(arrow.LIST):      mockList,
@@ -73,6 +73,7 @@ func init(){
 		// int(arrow.MAP):          mockMap,
 		//
 		// TODO: add other types
+		int(arrow.DURATION): mockDuration,
 	}
 }
 
@@ -254,6 +255,57 @@ func mockDate64(field arrow.Field, rows int) arrow.Array {
 	return builder.NewArray()
 }
 
+func mockTimestamp(field arrow.Field, rows int) arrow.Array {
+	builder := array.NewTimestampBuilder(memory.DefaultAllocator, field.Type.(*arrow.TimestampType))
+
+	for i := 0; i < rows; i++ {
+		timestamp,_ := arrow.TimestampFromTime(time.Date(1984, 1, 1, 0, 0, 0, 0, time.UTC).AddDate(0, 0, i), field.Type.(*arrow.TimestampType).TimeUnit())
+		builder.Append(timestamp)
+	}
+
+	return builder.NewArray()
+}
+
+func mockTime32(field arrow.Field, rows int) arrow.Array {
+	builder := array.NewTime32Builder(memory.DefaultAllocator, field.Type.(*arrow.Time32Type))
+
+	for i := 0; i < rows; i++ {
+		builder.Append(arrow.Time32(i))
+	}
+
+	return builder.NewArray()
+}
+
+func mockTime64(field arrow.Field, rows int) arrow.Array {
+	builder := array.NewTime64Builder(memory.DefaultAllocator, field.Type.(*arrow.Time64Type))
+
+	for i := 0; i < rows; i++ {
+		builder.Append(arrow.Time64(i))
+	}
+
+	return builder.NewArray()
+}
+
+func mockIntervalMonths(field arrow.Field, rows int) arrow.Array {
+	builder := array.NewMonthIntervalBuilder(memory.DefaultAllocator)
+
+	for i := 0; i < rows; i++ {
+		builder.Append(arrow.MonthInterval(i))
+	}
+
+	return builder.NewArray()
+}
+
+func mockIntervalDays(field arrow.Field, rows int) arrow.Array {
+	builder := array.NewDayTimeIntervalBuilder(memory.DefaultAllocator)
+
+	for i := 0; i < rows; i++ {
+		builder.Append(arrow.DayTimeInterval{Days: int32(i), Milliseconds: int32(i)})
+	}
+
+	return builder.NewArray()
+}
+
 func mockDecimal128(field arrow.Field, rows int) arrow.Array {
 	builder := array.NewDecimal128Builder(memory.DefaultAllocator, field.Type.(*arrow.Decimal128Type))
 	number := big.NewInt(math.MaxInt64)
@@ -320,6 +372,16 @@ func mockStruct(field arrow.Field, rows int) arrow.Array {
 	structData := array.NewData(field.Type, rows, []*memory.Buffer{nil}, innerDatas, 0, 0)
 
 	return array.NewStructData(structData)
+}
+
+func mockDuration(field arrow.Field, rows int) arrow.Array {
+	builder := array.NewDurationBuilder(memory.DefaultAllocator, field.Type.(*arrow.DurationType))
+
+	for i := 0; i < rows; i++ {
+		builder.Append(arrow.Duration(i))
+	}
+
+	return builder.NewArray()
 }
 
 func PopulateSchema(schema *arrow.Schema, rows int) arrow.Record {

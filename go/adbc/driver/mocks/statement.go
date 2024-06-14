@@ -259,9 +259,7 @@ func (st *statement) SetSqlQuery(query string) error {
 //
 // This invalidates any prior result sets on this statement.
 func (st *statement) ExecuteQuery(ctx context.Context) (array.RecordReader, int64, error) {
-	query := strings.ReplaceAll(st.Query, "\t", "")
-	query = strings.ReplaceAll(query, " ", "")
-	query = strings.ReplaceAll(query, "\n", "")
+	query := st.Query
 	if query == "passthrough" {
 		if st.paramBinding != nil {
 			return &mockReader{
@@ -280,11 +278,11 @@ func (st *statement) ExecuteQuery(ctx context.Context) (array.RecordReader, int6
 			}
 		}
 	} else {
-		mockReader, err := NewMockReader(query)
+		mockReader, rows, err := NewMockReader(query)
 		if err != nil {
 			return nil, -1, err
 		}
-		return mockReader, -1, nil
+		return mockReader, rows, nil
 	}
 }
 

@@ -80,12 +80,14 @@ type QueryListener struct {
 	typeStack []arrow.DataType
 	fields []*arrow.Field
 	rows      int
+	nameIdCounter int
 }
 
 func (l *QueryListener) ExitStructFields(ctx *parser.StructFieldsContext) {
 	// Currently is the same as fields
 	log.Printf("Exiting struct fields: %s", ctx.GetText())
-	fieldName := "default_s"
+	fieldName := "struct#" + strconv.Itoa(l.nameIdCounter)
+	l.nameIdCounter++
 	fieldNameNode := ctx.FIELDNAME()
 
 	if fieldNameNode != nil {
@@ -103,7 +105,8 @@ func (l *QueryListener) ExitStructFields(ctx *parser.StructFieldsContext) {
 
 func (l *QueryListener) ExitFields(ctx *parser.FieldsContext) {
 	log.Printf("Exiting fields: %s", ctx.GetText())
-	fieldName := "default"
+	fieldName := l.typeStack[len(l.typeStack)-1].Name() + "#" + strconv.Itoa(l.nameIdCounter)
+	l.nameIdCounter++
 	fieldNameNode := ctx.FIELDNAME()
 
 	if fieldNameNode != nil {
@@ -236,7 +239,7 @@ func (l* QueryListener)ExitQuery(ctx *parser.QueryContext) {
 // NewMockReader Creates a mockReader according to the query.
 // The query should be a list of types separated by commas
 // The returned mockReader will have the types in the same order
-func NewMockReader(query string) (*mockReader, error) {
+func NewMockReader(query string) (*mockReader,int64, error) {
 	log.Printf("Creating mock reader for query: %s", query)
 
 	inputStream := antlr.NewInputStream(query)
@@ -244,14 +247,14 @@ func NewMockReader(query string) (*mockReader, error) {
 	tokenStream := antlr.NewCommonTokenStream(lexer, antlr.TokenDefaultChannel)
 	parser := parser.NewQueryLanguageParser(tokenStream)
 
-	listener := &QueryListener{}
+	listener := &QueryListener{nameIdCounter: 0}
 	log.Println("Walking query tree")
 
 	parser.AddErrorListener(antlr.NewDiagnosticErrorListener(true))
 	antlr.ParseTreeWalkerDefault.Walk(listener, parser.Query())
 
 	if len(listener.fields) == 0 {
-		return nil, fmt.Errorf("the query does not contain any fields")
+		return nil, -1, fmt.Errorf("the query does not contain any fields")
 	}
 
 	log.Printf("Parsed query into types: %v", listener.typeStack)
@@ -274,7 +277,7 @@ func NewMockReader(query string) (*mockReader, error) {
 		currentRecordIndex: 0,
 		schema:             schema,
 		record:             mockData,
-	}, nil
+	}, int64(listener.rows),nil
 }
 
 func (r *mockReader) Retain() {

@@ -175,7 +175,7 @@ func mockFloat16(field arrow.Field, rows int) arrow.Array {
 	builder := array.NewFloat16Builder(memory.DefaultAllocator)
 
 	for i := 0; i < rows; i++ {
-		builder.Append(float16.New(float32(i * []int{-1, 1}[i%2])))
+		builder.Append(float16.New(float32(i * []int{-1, 1}[i%2])/10))
 	}
 
 	return builder.NewArray()
@@ -185,7 +185,7 @@ func mockFloat32(field arrow.Field, rows int) arrow.Array {
 	builder := array.NewFloat32Builder(memory.DefaultAllocator)
 
 	for i := 0; i < rows; i++ {
-		builder.Append(float32(i * []int{-1, 1}[i%2]))
+		builder.Append(float32(i * []int{-1, 1}[i%2])/10)
 	}
 
 	return builder.NewArray()
@@ -195,7 +195,7 @@ func mockFloat64(field arrow.Field, rows int) arrow.Array {
 	builder := array.NewFloat64Builder(memory.DefaultAllocator)
 
 	for i := 0; i < rows; i++ {
-		builder.Append(float64(i * []int{-1, 1}[i%2]))
+		builder.Append(float64(i * []int{-1, 1}[i%2])/10)
 	}
 
 	return builder.NewArray()

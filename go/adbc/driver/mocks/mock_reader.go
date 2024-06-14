@@ -210,6 +210,11 @@ func (l *QueryListener) ExitStruct(ctx *parser.StructContext) {
 	}
 	l.fields = l.fields[:len(l.fields)-1]
 
+	//reverse the structFields since we added them in reverse order
+	for i, j := 0, len(structFields)-1; i < j; i, j = i+1, j-1 {
+		structFields[i], structFields[j] = structFields[j], structFields[i]
+	}
+
 	thisStruct := arrow.StructOf(structFields...)
 	l.typeStack = append(l.typeStack, thisStruct)
 	log.Printf("Added struct: %v", thisStruct)

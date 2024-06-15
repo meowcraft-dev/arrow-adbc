@@ -3,6 +3,7 @@ package mocks_test
 import (
 	"bytes"
 	"context"
+	"fmt"
 	"testing"
 
 	"github.com/apache/arrow-adbc/go/adbc"
@@ -138,7 +139,8 @@ func (suite *MocksDriverTests) TestNewDatabaseGetSetOptions() {
 }
 
 func (suite *MocksDriverTests) TestRowCount() {
-	query := "5:int8"
+	expectedRows := 5
+	query := fmt.Sprintf("%d:int8", expectedRows)
 	suite.Require().NoError(suite.stmt.SetSqlQuery(query))
 	rdr, n, err := suite.stmt.ExecuteQuery(suite.ctx)
 	suite.Require().NoError(err)
@@ -152,11 +154,12 @@ func (suite *MocksDriverTests) TestRowCount() {
 	// verify that we got the expected number of rows if we sum up
 	// all the rows from each record in the stream.
 	suite.Equal(n, recv)
-	suite.Equal(recv, int64(5))
+	suite.Equal(recv, int64(expectedRows))
 }
 
 func (suite *MocksDriverTests) TestIntegers() {
-	query := "2:int8,uint8,int16,uint16,int32,uint32,int64,uint64"
+	expectedRows := 2
+	query := fmt.Sprintf("%d:int8,uint8,int16,uint16,int32,uint32,int64,uint64", expectedRows)
 	suite.Require().NoError(suite.stmt.SetSqlQuery(query))
 	rdr, n, err := suite.stmt.ExecuteQuery(suite.ctx)
 	suite.Require().NoError(err)
@@ -164,7 +167,7 @@ func (suite *MocksDriverTests) TestIntegers() {
 
 	result := rdr.Record()
 
-	suite.EqualValues(2, n)
+	suite.EqualValues(expectedRows, n)
 	suite.True(rdr.Next())
 
 	expectedSchema := arrow.NewSchema([]arrow.Field{
@@ -207,6 +210,149 @@ func (suite *MocksDriverTests) TestIntegers() {
 	)
 
 	suite.Equal(expectedSchema, rdr.Schema())
+	suite.Require().NoError(err)
+	defer expectedRecords.Release()
+
+	suite.Truef(array.RecordEqual(expectedRecords, result), "expected: %s\ngot: %s", expectedRecords, result)
+
+	suite.False(rdr.Next())
+	suite.Require().NoError(rdr.Err())
+}
+
+func (suite *MocksDriverTests) TestSimpleList() {
+	expectedRows := 1
+	query := fmt.Sprintf("%d:list<int8>", expectedRows)
+	suite.Require().NoError(suite.stmt.SetSqlQuery(query))
+	rdr, n, err := suite.stmt.ExecuteQuery(suite.ctx)
+	suite.Require().NoError(err)
+	defer rdr.Release()
+
+	result := rdr.Record()
+
+	suite.EqualValues(expectedRows, n)
+	suite.True(rdr.Next())
+
+	expectedSchema := arrow.NewSchema([]arrow.Field{
+		{
+			Name: "list#0",
+			Type: arrow.ListOf(arrow.PrimitiveTypes.Int8),
+			// Metadata: arrow.MetadataFrom(map[string]string{"list_length": "1"}),
+		},
+	}, nil)
+
+	expectedRecords, _, err := array.RecordFromJSON(
+		suite.Quirks.Alloc(),
+		expectedSchema,
+		bytes.NewReader([]byte(`[{"list#0":[0]}]`)),
+	)
+
+	suite.Require().NoError(err)
+	defer expectedRecords.Release()
+
+	suite.Truef(array.RecordEqual(expectedRecords, result), "expected: %s\ngot: %s", expectedRecords, result)
+
+	suite.False(rdr.Next())
+	suite.Require().NoError(rdr.Err())
+}
+
+func (suite *MocksDriverTests) TestNestedLists() {
+	expectedRows := 2
+	query := fmt.Sprintf("%d:list<3:list<4:int16>>", expectedRows)
+	suite.Require().NoError(suite.stmt.SetSqlQuery(query))
+	rdr, n, err := suite.stmt.ExecuteQuery(suite.ctx)
+	suite.Require().NoError(err)
+	defer rdr.Release()
+
+	result := rdr.Record()
+
+	suite.EqualValues(expectedRows, n)
+	suite.True(rdr.Next())
+
+	expectedSchema := arrow.NewSchema([]arrow.Field{
+		{
+			Name: "list#0",
+			Type: arrow.ListOf(arrow.ListOf(arrow.PrimitiveTypes.Int16)),
+		},
+	}, nil)
+
+	expectedRecords, _, err := array.RecordFromJSON(
+		suite.Quirks.Alloc(),
+		expectedSchema,
+		bytes.NewReader([]byte(`
+		[
+			{
+				"list#0": [
+				[0, 1, -2, 3],
+				[-4, 5, -6, 7],
+				[-8, 9, -10, 11]
+				]
+			},
+			{
+				"list#0": [
+				[-12, 13, -14, 15],
+				[-16, 17, -18, 19],
+				[-20, 21, -22, 23]
+				]
+			}
+		]`)),
+	)
+
+	suite.Require().NoError(err)
+	defer expectedRecords.Release()
+
+	suite.Truef(array.RecordEqual(expectedRecords, result), "expected: %s\ngot: %s", expectedRecords, result)
+
+	suite.False(rdr.Next())
+	suite.Require().NoError(rdr.Err())
+}
+
+func (suite *MocksDriverTests) TestStructs() {
+	expectedRows := 2
+	query := fmt.Sprintf("%d:struct<list<4:int16>,int8,struct<float32>#inner>#outer", expectedRows)
+	suite.Require().NoError(suite.stmt.SetSqlQuery(query))
+	rdr, n, err := suite.stmt.ExecuteQuery(suite.ctx)
+	suite.Require().NoError(err)
+	defer rdr.Release()
+
+	result := rdr.Record()
+
+	suite.EqualValues(expectedRows, n)
+	suite.True(rdr.Next())
+
+	expectedSchema := arrow.NewSchema([]arrow.Field{
+		{
+			Name: "outer",
+			Type: arrow.StructOf(
+				arrow.Field{Name: "struct#0", Type: arrow.ListOf(arrow.PrimitiveTypes.Int16)},
+				arrow.Field{Name: "struct#1", Type: arrow.PrimitiveTypes.Int8},
+				arrow.Field{Name: "inner", Type: arrow.StructOf(
+					arrow.Field{Name: "struct#2", Type: arrow.PrimitiveTypes.Float32},
+				)},
+			),
+		},
+	}, nil)
+
+	expectedRecords, _, err := array.RecordFromJSON(
+		suite.Quirks.Alloc(),
+		expectedSchema,
+		bytes.NewReader([]byte(`[
+			{
+				"outer": {
+				"inner": { "struct#2": 0 },
+				"struct#0": [0, 1, -2, 3],
+				"struct#1": 0
+				}
+			},
+			{
+				"outer": {
+				"inner": { "struct#2": 0.1 },
+				"struct#0": [-4, 5, -6, 7],
+				"struct#1": 1
+				}
+			}
+		]`)),
+	)
+
 	suite.Require().NoError(err)
 	defer expectedRecords.Release()
 

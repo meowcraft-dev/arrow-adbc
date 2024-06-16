@@ -323,10 +323,10 @@ func (suite *MocksDriverTests) TestStructs() {
 		{
 			Name: "outer",
 			Type: arrow.StructOf(
-				arrow.Field{Name: "struct#0", Type: arrow.ListOf(arrow.PrimitiveTypes.Int16)},
-				arrow.Field{Name: "struct#1", Type: arrow.PrimitiveTypes.Int8},
+				arrow.Field{Name: "list#0", Type: arrow.ListOf(arrow.PrimitiveTypes.Int16)},
+				arrow.Field{Name: "int8#1", Type: arrow.PrimitiveTypes.Int8},
 				arrow.Field{Name: "inner", Type: arrow.StructOf(
-					arrow.Field{Name: "struct#2", Type: arrow.PrimitiveTypes.Float32},
+					arrow.Field{Name: "float32#2", Type: arrow.PrimitiveTypes.Float32},
 				)},
 			),
 		},
@@ -338,16 +338,16 @@ func (suite *MocksDriverTests) TestStructs() {
 		bytes.NewReader([]byte(`[
 			{
 				"outer": {
-				"inner": { "struct#2": 0 },
-				"struct#0": [0, 1, -2, 3],
-				"struct#1": 0
+				"inner": { "float32#2": 0 },
+				"list#0": [0, 1, -2, 3],
+				"int8#1": 0
 				}
 			},
 			{
 				"outer": {
-				"inner": { "struct#2": 0.1 },
-				"struct#0": [-4, 5, -6, 7],
-				"struct#1": 1
+				"inner": { "float32#2": 0.1 },
+				"list#0": [-4, 5, -6, 7],
+				"int8#1": 1
 				}
 			}
 		]`)),

@@ -87,7 +87,7 @@ type QueryListener struct {
 func (l *QueryListener) ExitStructField(ctx *parser.StructFieldContext) {
 	// Currently is the same as fields
 	log.Printf("Exiting struct fields: %s", ctx.GetText())
-	fieldName := "struct#" + strconv.Itoa(l.nameIdCounter)
+	fieldName := l.typeStack[len(l.typeStack)-1].Name() + "#" + strconv.Itoa(l.nameIdCounter)
 	l.nameIdCounter++
 	fieldNameNode := ctx.FIELD_NAME()
 

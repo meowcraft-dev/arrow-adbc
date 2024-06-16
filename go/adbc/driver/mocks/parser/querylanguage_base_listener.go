@@ -27,23 +27,41 @@ func (s *BaseQueryLanguageListener) EnterQuery(ctx *QueryContext) {}
 // ExitQuery is called when production query is exited.
 func (s *BaseQueryLanguageListener) ExitQuery(ctx *QueryContext) {}
 
-// EnterFields is called when production fields is entered.
-func (s *BaseQueryLanguageListener) EnterFields(ctx *FieldsContext) {}
+// EnterTopLevelField is called when production topLevelField is entered.
+func (s *BaseQueryLanguageListener) EnterTopLevelField(ctx *TopLevelFieldContext) {}
 
-// ExitFields is called when production fields is exited.
-func (s *BaseQueryLanguageListener) ExitFields(ctx *FieldsContext) {}
+// ExitTopLevelField is called when production topLevelField is exited.
+func (s *BaseQueryLanguageListener) ExitTopLevelField(ctx *TopLevelFieldContext) {}
 
-// EnterStructFields is called when production structFields is entered.
-func (s *BaseQueryLanguageListener) EnterStructFields(ctx *StructFieldsContext) {}
+// EnterStructField is called when production structField is entered.
+func (s *BaseQueryLanguageListener) EnterStructField(ctx *StructFieldContext) {}
 
-// ExitStructFields is called when production structFields is exited.
-func (s *BaseQueryLanguageListener) ExitStructFields(ctx *StructFieldsContext) {}
+// ExitStructField is called when production structField is exited.
+func (s *BaseQueryLanguageListener) ExitStructField(ctx *StructFieldContext) {}
 
-// EnterInnerType is called when production innerType is entered.
-func (s *BaseQueryLanguageListener) EnterInnerType(ctx *InnerTypeContext) {}
+// EnterUnionField is called when production unionField is entered.
+func (s *BaseQueryLanguageListener) EnterUnionField(ctx *UnionFieldContext) {}
 
-// ExitInnerType is called when production innerType is exited.
-func (s *BaseQueryLanguageListener) ExitInnerType(ctx *InnerTypeContext) {}
+// ExitUnionField is called when production unionField is exited.
+func (s *BaseQueryLanguageListener) ExitUnionField(ctx *UnionFieldContext) {}
+
+// EnterType is called when production type is entered.
+func (s *BaseQueryLanguageListener) EnterType(ctx *TypeContext) {}
+
+// ExitType is called when production type is exited.
+func (s *BaseQueryLanguageListener) ExitType(ctx *TypeContext) {}
+
+// EnterUnion is called when production union is entered.
+func (s *BaseQueryLanguageListener) EnterUnion(ctx *UnionContext) {}
+
+// ExitUnion is called when production union is exited.
+func (s *BaseQueryLanguageListener) ExitUnion(ctx *UnionContext) {}
+
+// EnterDictionary is called when production dictionary is entered.
+func (s *BaseQueryLanguageListener) EnterDictionary(ctx *DictionaryContext) {}
+
+// ExitDictionary is called when production dictionary is exited.
+func (s *BaseQueryLanguageListener) ExitDictionary(ctx *DictionaryContext) {}
 
 // EnterList is called when production list is entered.
 func (s *BaseQueryLanguageListener) EnterList(ctx *ListContext) {}
@@ -74,6 +92,24 @@ func (s *BaseQueryLanguageListener) EnterDecimal256(ctx *Decimal256Context) {}
 
 // ExitDecimal256 is called when production decimal256 is exited.
 func (s *BaseQueryLanguageListener) ExitDecimal256(ctx *Decimal256Context) {}
+
+// EnterRunEndEncoded is called when production runEndEncoded is entered.
+func (s *BaseQueryLanguageListener) EnterRunEndEncoded(ctx *RunEndEncodedContext) {}
+
+// ExitRunEndEncoded is called when production runEndEncoded is exited.
+func (s *BaseQueryLanguageListener) ExitRunEndEncoded(ctx *RunEndEncodedContext) {}
+
+// EnterUnionValue is called when production unionValue is entered.
+func (s *BaseQueryLanguageListener) EnterUnionValue(ctx *UnionValueContext) {}
+
+// ExitUnionValue is called when production unionValue is exited.
+func (s *BaseQueryLanguageListener) ExitUnionValue(ctx *UnionValueContext) {}
+
+// EnterDictEntry is called when production dictEntry is entered.
+func (s *BaseQueryLanguageListener) EnterDictEntry(ctx *DictEntryContext) {}
+
+// ExitDictEntry is called when production dictEntry is exited.
+func (s *BaseQueryLanguageListener) ExitDictEntry(ctx *DictEntryContext) {}
 
 // EnterSimpleTypes is called when production simpleTypes is entered.
 func (s *BaseQueryLanguageListener) EnterSimpleTypes(ctx *SimpleTypesContext) {}

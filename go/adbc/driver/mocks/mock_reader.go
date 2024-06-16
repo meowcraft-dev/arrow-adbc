@@ -77,18 +77,19 @@ var (
 
 type QueryListener struct {
 	*parser.BaseQueryLanguageListener
+	lexer *parser.QueryLanguageLexer
 	typeStack []arrow.DataType
 	fields []*arrow.Field
 	rows      int
 	nameIdCounter int
 }
 
-func (l *QueryListener) ExitStructFields(ctx *parser.StructFieldsContext) {
+func (l *QueryListener) ExitStructField(ctx *parser.StructFieldContext) {
 	// Currently is the same as fields
 	log.Printf("Exiting struct fields: %s", ctx.GetText())
 	fieldName := "struct#" + strconv.Itoa(l.nameIdCounter)
 	l.nameIdCounter++
-	fieldNameNode := ctx.FIELDNAME()
+	fieldNameNode := ctx.FIELD_NAME()
 
 	if fieldNameNode != nil {
 		fieldName = fieldNameNode.GetText()[1:]
@@ -103,11 +104,11 @@ func (l *QueryListener) ExitStructFields(ctx *parser.StructFieldsContext) {
 	l.typeStack = l.typeStack[:len(l.typeStack)-1]
 }
 
-func (l *QueryListener) ExitFields(ctx *parser.FieldsContext) {
+func (l *QueryListener) ExitTopLevelField(ctx *parser.TopLevelFieldContext) {
 	log.Printf("Exiting fields: %s", ctx.GetText())
 	fieldName := l.typeStack[len(l.typeStack)-1].Name() + "#" + strconv.Itoa(l.nameIdCounter)
 	l.nameIdCounter++
-	fieldNameNode := ctx.FIELDNAME()
+	fieldNameNode := ctx.FIELD_NAME()
 
 	if fieldNameNode != nil {
 		fieldName = fieldNameNode.GetText()[1:]
@@ -123,18 +124,20 @@ func (l *QueryListener) ExitFields(ctx *parser.FieldsContext) {
 }
 
 func (l *QueryListener) EnterSimpleTypes(ctx *parser.SimpleTypesContext) {
-	typeName := ctx.GetText()
+	tokenType := ctx.GetStart().GetTokenType();
+	typeTokenName := l.lexer.GetSymbolicNames()[tokenType]
+	typeName := strings.ToLower(typeTokenName);
 	log.Printf("Entering simple type: %s", typeName)
 	if dataType, ok := availableTypes[typeName]; ok {
 		log.Printf("Adding data type: %v", dataType.Type)
 		l.typeStack = append(l.typeStack, dataType.Type)
 	} else {
-		log.Printf("Unknown data type: %s", typeName)
+		panic(fmt.Sprintf("Unknown data type: %s", typeName))
 	}
 }
 
 func (l *QueryListener) ExitFixedSizeBinary(ctx *parser.FixedSizeBinaryContext) {
-	byteWidthStr := ctx.BYTEWIDTH()
+	byteWidthStr := ctx.BYTE_WIDTH()
 	if byteWidth, err := strconv.Atoi(byteWidthStr.GetText()); err != nil {
 		panic(fmt.Sprintf("Invalid byte width: %s, check parser", byteWidthStr.GetText()))
 	} else {
@@ -156,14 +159,14 @@ func parsePercisionAndScale(scaleStr string) (int32, int32) {
 }
 
 func (l *QueryListener) ExitDecimal128(ctx *parser.Decimal128Context) {
-	precisionScaleStr := ctx.DECIMALPS()
+	precisionScaleStr := ctx.DECIMAL_PS()
 	precision, scale := parsePercisionAndScale(precisionScaleStr.GetText())
 	// TODO check if presicion and scale are valid
 	l.typeStack = append(l.typeStack, &arrow.Decimal128Type{Precision: precision, Scale: scale})
 }
 
 func (l *QueryListener) ExitDecimal256(ctx *parser.Decimal256Context) {
-	precisionScaleStr := ctx.DECIMALPS()
+	precisionScaleStr := ctx.DECIMAL_PS()
 	precision, scale := parsePercisionAndScale(precisionScaleStr.GetText())
 	// TODO check if presicion and scale are valid
 	l.typeStack = append(l.typeStack, &arrow.Decimal256Type{Precision: precision, Scale: scale})
@@ -184,8 +187,8 @@ func (l *QueryListener) ExitList(ctx *parser.ListContext) {
 	l.typeStack = l.typeStack[:len(l.typeStack)-1]
 
 	listLength := 1
-	if ctx.ROWCOUNT() != nil {
-		rowCountStr := strings.Split(ctx.ROWCOUNT().GetText(),":")[0]
+	if ctx.COUNT() != nil {
+		rowCountStr := strings.Split(ctx.COUNT().GetText(),":")[0]
 		rowCount, err := strconv.Atoi(rowCountStr)
 		if err != nil {
 			panic(fmt.Sprintf("Invalid row count in list: %s, check parser", rowCountStr))
@@ -227,7 +230,7 @@ func (l* QueryListener)ExitQuery(ctx *parser.QueryContext) {
 	}
 
 	log.Printf("Query finished, types: %v", l.typeStack)
-	rowCountNode := ctx.ROWCOUNT()
+	rowCountNode := ctx.COUNT()
 	if rowCountNode != nil {
 		rowCountStr := strings.Split(rowCountNode.GetText(),":")[0]
 		rowCount, err := strconv.Atoi(rowCountStr)
@@ -252,7 +255,7 @@ func NewMockReader(query string) (*mockReader,int64, error) {
 	tokenStream := antlr.NewCommonTokenStream(lexer, antlr.TokenDefaultChannel)
 	parser := parser.NewQueryLanguageParser(tokenStream)
 
-	listener := &QueryListener{nameIdCounter: 0}
+	listener := &QueryListener{nameIdCounter: 0,lexer: lexer}
 	log.Println("Walking query tree")
 
 	parser.AddErrorListener(antlr.NewDiagnosticErrorListener(true))

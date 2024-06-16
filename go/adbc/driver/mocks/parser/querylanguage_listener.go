@@ -11,14 +11,23 @@ type QueryLanguageListener interface {
 	// EnterQuery is called when entering the query production.
 	EnterQuery(c *QueryContext)
 
-	// EnterFields is called when entering the fields production.
-	EnterFields(c *FieldsContext)
+	// EnterTopLevelField is called when entering the topLevelField production.
+	EnterTopLevelField(c *TopLevelFieldContext)
 
-	// EnterStructFields is called when entering the structFields production.
-	EnterStructFields(c *StructFieldsContext)
+	// EnterStructField is called when entering the structField production.
+	EnterStructField(c *StructFieldContext)
 
-	// EnterInnerType is called when entering the innerType production.
-	EnterInnerType(c *InnerTypeContext)
+	// EnterUnionField is called when entering the unionField production.
+	EnterUnionField(c *UnionFieldContext)
+
+	// EnterType is called when entering the type production.
+	EnterType(c *TypeContext)
+
+	// EnterUnion is called when entering the union production.
+	EnterUnion(c *UnionContext)
+
+	// EnterDictionary is called when entering the dictionary production.
+	EnterDictionary(c *DictionaryContext)
 
 	// EnterList is called when entering the list production.
 	EnterList(c *ListContext)
@@ -35,20 +44,38 @@ type QueryLanguageListener interface {
 	// EnterDecimal256 is called when entering the decimal256 production.
 	EnterDecimal256(c *Decimal256Context)
 
+	// EnterRunEndEncoded is called when entering the runEndEncoded production.
+	EnterRunEndEncoded(c *RunEndEncodedContext)
+
+	// EnterUnionValue is called when entering the unionValue production.
+	EnterUnionValue(c *UnionValueContext)
+
+	// EnterDictEntry is called when entering the dictEntry production.
+	EnterDictEntry(c *DictEntryContext)
+
 	// EnterSimpleTypes is called when entering the simpleTypes production.
 	EnterSimpleTypes(c *SimpleTypesContext)
 
 	// ExitQuery is called when exiting the query production.
 	ExitQuery(c *QueryContext)
 
-	// ExitFields is called when exiting the fields production.
-	ExitFields(c *FieldsContext)
+	// ExitTopLevelField is called when exiting the topLevelField production.
+	ExitTopLevelField(c *TopLevelFieldContext)
 
-	// ExitStructFields is called when exiting the structFields production.
-	ExitStructFields(c *StructFieldsContext)
+	// ExitStructField is called when exiting the structField production.
+	ExitStructField(c *StructFieldContext)
 
-	// ExitInnerType is called when exiting the innerType production.
-	ExitInnerType(c *InnerTypeContext)
+	// ExitUnionField is called when exiting the unionField production.
+	ExitUnionField(c *UnionFieldContext)
+
+	// ExitType is called when exiting the type production.
+	ExitType(c *TypeContext)
+
+	// ExitUnion is called when exiting the union production.
+	ExitUnion(c *UnionContext)
+
+	// ExitDictionary is called when exiting the dictionary production.
+	ExitDictionary(c *DictionaryContext)
 
 	// ExitList is called when exiting the list production.
 	ExitList(c *ListContext)
@@ -64,6 +91,15 @@ type QueryLanguageListener interface {
 
 	// ExitDecimal256 is called when exiting the decimal256 production.
 	ExitDecimal256(c *Decimal256Context)
+
+	// ExitRunEndEncoded is called when exiting the runEndEncoded production.
+	ExitRunEndEncoded(c *RunEndEncodedContext)
+
+	// ExitUnionValue is called when exiting the unionValue production.
+	ExitUnionValue(c *UnionValueContext)
+
+	// ExitDictEntry is called when exiting the dictEntry production.
+	ExitDictEntry(c *DictEntryContext)
 
 	// ExitSimpleTypes is called when exiting the simpleTypes production.
 	ExitSimpleTypes(c *SimpleTypesContext)

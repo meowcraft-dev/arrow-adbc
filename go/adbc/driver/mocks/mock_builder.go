@@ -375,9 +375,6 @@ func mockStruct(field arrow.Field, rows int) arrow.Array {
 }
 
 func mockSparseUnion(field arrow.Field, rows int) arrow.Array {
-
-	panic("not implemented")
-
 	// until we figure out how to get values from the metadata
 	// we'll just create 1 value for each field
 	// so union<bool,string,int8> will be [true, "0", 0]
@@ -386,22 +383,23 @@ func mockSparseUnion(field arrow.Field, rows int) arrow.Array {
 	innerFields := unionType.Fields()
 
 	typeIdsBuilder := array.NewInt8Builder(memory.DefaultAllocator)
-	for i := 0; i < len(innerFields); i++ {
-		typeIdsBuilder.Append(int8(i))
+	for i := 0; i < rows; i++ {
+		typeIdsBuilder.Append(int8(i % len(innerFields)))
 	}
 	typeIds := typeIdsBuilder.NewArray()
 
 	innerDatas := make([]arrow.Array, len(innerFields))
 	for i := 0; i < len(innerFields); i++ {
 		innerField := innerFields[i]
-		innerDatas[i] = handlerForType[int(innerField.Type.ID())](innerField, 1)
+		innerDatas[i] = handlerForType[int(innerField.Type.ID())](innerField, rows)
+	}
+
+	names := make([]string, len(innerFields))
+	for i,f := range innerFields {
+		names[i] = f.Name
 	}
 	
-	thisUnion,err := array.NewSparseUnionFromArrays(
-		typeIds,
-		innerDatas,
-		arrow.UnionTypeCode(2),
-	)
+	thisUnion,err := array.NewSparseUnionFromArraysWithFields(typeIds, innerDatas, names)
 
 	if err != nil {
 		panic(err)
@@ -410,7 +408,37 @@ func mockSparseUnion(field arrow.Field, rows int) arrow.Array {
 }
 
 func mockDenseUnion(field arrow.Field, rows int) arrow.Array {
-	panic("not implemented")
+	unionType := field.Type.(*arrow.DenseUnionType)
+	innerFields := unionType.Fields()
+
+	typeIdsBuilder := array.NewInt8Builder(memory.DefaultAllocator)
+	for i := 0; i < rows; i++ {
+		typeIdsBuilder.Append(int8(i % len(innerFields)))
+	}
+	typeIds := typeIdsBuilder.NewArray()
+
+	innerDatas := make([]arrow.Array, len(innerFields))
+	for i := 0; i < len(innerFields); i++ {
+		innerField := innerFields[i]
+		innerDatas[i] = handlerForType[int(innerField.Type.ID())](innerField, rows)
+	}
+
+	names := make([]string, len(innerFields))
+	for i,f := range innerFields {
+		names[i] = f.Name
+	}
+
+	offsetsBuilder := array.NewInt32Builder(memory.DefaultAllocator)
+	for i := 0; i < rows; i++ {
+		offsetsBuilder.Append(int32(i / len(innerFields)))
+	}
+
+	thisUnion,err := array.NewDenseUnionFromArraysWithFields(typeIds,offsetsBuilder.NewArray(), innerDatas, names)
+
+	if err != nil {
+		panic(err)
+	}
+	return thisUnion
 }
 
 func mockDuration(field arrow.Field, rows int) arrow.Array {

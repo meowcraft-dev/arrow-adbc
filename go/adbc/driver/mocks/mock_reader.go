@@ -98,8 +98,9 @@ func (l *QueryListener) ExitUnionField(ctx *parser.UnionFieldContext) {
 	l.fields = append(l.fields, &arrow.Field{
 		Name: fieldName,
 		Type: l.typeStack[len(l.typeStack)-1],
+		Nullable: true,
 	})
-	log.Printf("Created struct field: %v", l.fields[len(l.fields)-1])
+	log.Printf("Created union field: %v", l.fields[len(l.fields)-1])
 
 	l.typeStack = l.typeStack[:len(l.typeStack)-1]
 }
@@ -265,8 +266,8 @@ func (l *QueryListener) ExitUnion(ctx *parser.UnionContext) {
 
 	typeCodes := make([]arrow.UnionTypeCode, len(unionFields))
 
-	for i, field := range unionFields {
-		typeCodes[i] = arrow.UnionTypeCode(field.Type.ID())
+	for i := range unionFields {
+		typeCodes[i] = int8(i)
 	}
 
 	var thisUnion arrow.UnionType
@@ -278,17 +279,13 @@ func (l *QueryListener) ExitUnion(ctx *parser.UnionContext) {
 		panic(fmt.Sprintf("Unknown union type: %s", unionName))
 	}
 
-	allUnionValues := ctx.AllUnionValue()
-	uvNames := make([]string, len(allUnionValues))
+	// allUnionValues := ctx.AllUnionValue()
+	// uvNames := make([]string, len(allUnionValues))
 
-	// set union value metadata
-    for i,uv := range allUnionValues {
-		uvNames[i] = uv.GetText()
-	}
-
-	// md := arrow.NewMetadata([]string{"union_value"},[]string{strings.Join(uvNames, ",")})
-	// thisUnion.SetMetadata(md)
-	// FIXME: find a way to set union value metadata
+	// // set union value metadata
+    // for i,uv := range allUnionValues {
+	// 	uvNames[i] = uv.GetText()
+	// }
 
 	l.typeStack = append(l.typeStack, thisUnion)
 	log.Printf("Added union: %v", thisUnion)

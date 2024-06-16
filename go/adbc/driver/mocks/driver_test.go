@@ -409,10 +409,9 @@ func (suite *MocksDriverTests) TestAlias() {
 	suite.Require().NoError(rdr.Err())
 }
 
-func (suite *MocksDriverTests) TestUnion() {
-	suite.T().Skip("union types not supported yet")
-	expectedRows := 1
-	query := fmt.Sprintf("%d:sparse_union<bool>", expectedRows)
+func (suite *MocksDriverTests) TestSparseUnion1() {
+	expectedRows := 3
+	query := fmt.Sprintf("%d:sparse_union<bool,int8,string>", expectedRows)
 	suite.Require().NoError(suite.stmt.SetSqlQuery(query))
 	rdr, n, err := suite.stmt.ExecuteQuery(suite.ctx)
 	suite.Require().NoError(err)
@@ -425,10 +424,153 @@ func (suite *MocksDriverTests) TestUnion() {
 
 	expectedSchema := arrow.NewSchema([]arrow.Field{
 		{
-			Name: "union#1",
+			Name: "sparse_union#3",
 			Type: arrow.SparseUnionOf(
-				[]arrow.Field{{Name: "int8#0", Type: arrow.PrimitiveTypes.Int8}},
-				[]arrow.UnionTypeCode{0},
+				[]arrow.Field{
+				{Name: "bool#0", Type: arrow.FixedWidthTypes.Boolean, Nullable: true},
+				{Name: "int8#1", Type: arrow.PrimitiveTypes.Int8, Nullable: true},
+				{Name: "utf8#2", Type: arrow.BinaryTypes.String, Nullable: true},
+		},
+				[]arrow.UnionTypeCode{0,1,2},
+			),
+		},
+	}, nil)
+
+	expectedRecords, _, err := array.RecordFromJSON(
+		suite.Quirks.Alloc(),
+		expectedSchema,
+		bytes.NewReader([]byte(`[
+			{ "sparse_union#3": [0, true] },
+			{ "sparse_union#3": [1, 1] },
+			{ "sparse_union#3": [2, "2"] }
+		]`)),
+	)
+
+	suite.Require().NoError(err)
+	defer expectedRecords.Release()
+
+	suite.Truef(array.RecordEqual(expectedRecords, result), "expected: %s\ngot: %s", expectedRecords, result)
+
+	suite.False(rdr.Next())
+	suite.Require().NoError(rdr.Err())
+}
+
+
+func (suite *MocksDriverTests) TestSparseUnion2() {
+	expectedRows := 1
+	query := fmt.Sprintf("%d:sparse_union<bool,int8,string>", expectedRows)
+	suite.Require().NoError(suite.stmt.SetSqlQuery(query))
+	rdr, n, err := suite.stmt.ExecuteQuery(suite.ctx)
+	suite.Require().NoError(err)
+	defer rdr.Release()
+
+	result := rdr.Record()
+
+	suite.EqualValues(expectedRows, n)
+	suite.True(rdr.Next())
+
+	expectedSchema := arrow.NewSchema([]arrow.Field{
+		{
+			Name: "sparse_union#3",
+			Type: arrow.SparseUnionOf(
+				[]arrow.Field{
+				{Name: "bool#0", Type: arrow.FixedWidthTypes.Boolean, Nullable: true},
+				{Name: "int8#1", Type: arrow.PrimitiveTypes.Int8, Nullable: true},
+				{Name: "utf8#2", Type: arrow.BinaryTypes.String, Nullable: true},
+		},
+				[]arrow.UnionTypeCode{0,1,2},
+			),
+		},
+	}, nil)
+
+	expectedRecords, _, err := array.RecordFromJSON(
+		suite.Quirks.Alloc(),
+		expectedSchema,
+		bytes.NewReader([]byte(`[{"sparse_union#3":[0,true]}]`)),
+	)
+
+	suite.Require().NoError(err)
+	defer expectedRecords.Release()
+
+	suite.Truef(array.RecordEqual(expectedRecords, result), "expected: %s\ngot: %s", expectedRecords, result)
+
+	suite.False(rdr.Next())
+	suite.Require().NoError(rdr.Err())
+}
+
+
+func (suite *MocksDriverTests) TestSparseUnion3() {
+	expectedRows := 5
+	query := fmt.Sprintf("%d:sparse_union<bool,int8,string>", expectedRows)
+	suite.Require().NoError(suite.stmt.SetSqlQuery(query))
+	rdr, n, err := suite.stmt.ExecuteQuery(suite.ctx)
+	suite.Require().NoError(err)
+	defer rdr.Release()
+
+	result := rdr.Record()
+
+	suite.EqualValues(expectedRows, n)
+	suite.True(rdr.Next())
+
+	expectedSchema := arrow.NewSchema([]arrow.Field{
+		{
+			Name: "sparse_union#3",
+			Type: arrow.SparseUnionOf(
+				[]arrow.Field{
+				{Name: "bool#0", Type: arrow.FixedWidthTypes.Boolean, Nullable: true},
+				{Name: "int8#1", Type: arrow.PrimitiveTypes.Int8, Nullable: true},
+				{Name: "utf8#2", Type: arrow.BinaryTypes.String, Nullable: true},
+		},
+				[]arrow.UnionTypeCode{0,1,2},
+			),
+		},
+	}, nil)
+
+	expectedRecords, _, err := array.RecordFromJSON(
+		suite.Quirks.Alloc(),
+		expectedSchema,
+		bytes.NewReader([]byte(`[
+			{ "sparse_union#3": [0, true] },
+			{ "sparse_union#3": [1, 1] },
+			{ "sparse_union#3": [2, "2"] },
+			{ "sparse_union#3": [0, false] },
+			{ "sparse_union#3": [1, -4] }
+		]`)),
+	)
+
+	suite.Require().NoError(err)
+	defer expectedRecords.Release()
+
+	suite.Truef(array.RecordEqual(expectedRecords, result), "expected: %s\ngot: %s", expectedRecords, result)
+
+	suite.False(rdr.Next())
+	suite.Require().NoError(rdr.Err())
+}
+
+
+func (suite *MocksDriverTests) TestDenseUnion1() {
+	expectedRows := 3
+	query := fmt.Sprintf("%d:dense_union<bool,int8,string>", expectedRows)
+	suite.Require().NoError(suite.stmt.SetSqlQuery(query))
+	rdr, n, err := suite.stmt.ExecuteQuery(suite.ctx)
+	suite.Require().NoError(err)
+	defer rdr.Release()
+
+	result := rdr.Record()
+
+	suite.EqualValues(expectedRows, n)
+	suite.True(rdr.Next())
+
+	expectedSchema := arrow.NewSchema([]arrow.Field{
+		{
+			Name: "dense_union#3",
+			Type: arrow.DenseUnionOf(
+				[]arrow.Field{
+				{Name: "bool#0", Type: arrow.FixedWidthTypes.Boolean, Nullable: true},
+				{Name: "int8#1", Type: arrow.PrimitiveTypes.Int8, Nullable: true},
+				{Name: "utf8#2", Type: arrow.BinaryTypes.String, Nullable: true},
+		},
+				[]arrow.UnionTypeCode{0,1,2},
 			),
 		},
 	}, nil)
@@ -440,8 +582,102 @@ func (suite *MocksDriverTests) TestUnion() {
 		suite.Quirks.Alloc(),
 		expectedSchema,
 		bytes.NewReader([]byte(`[
-			{ "date32#2": "1984-01-01", "float32#1": 0, "int8#0": 0 },
-			{ "date32#2": "1984-01-02", "float32#1": 0.1, "int8#0": 1 }
+			{ "dense_union#3": [0, true] },
+			{ "dense_union#3": [1, 0] },
+			{ "dense_union#3": [2, "0"] }
+		]`)),
+	)
+
+	suite.Require().NoError(err)
+	defer expectedRecords.Release()
+
+	suite.Truef(array.RecordEqual(expectedRecords, result), "expected: %s\ngot: %s", expectedRecords, result)
+
+	suite.False(rdr.Next())
+	suite.Require().NoError(rdr.Err())
+}
+
+
+func (suite *MocksDriverTests) TestDenseUnion2() {
+	expectedRows := 1
+	query := fmt.Sprintf("%d:dense_union<bool,int8,string>", expectedRows)
+	suite.Require().NoError(suite.stmt.SetSqlQuery(query))
+	rdr, n, err := suite.stmt.ExecuteQuery(suite.ctx)
+	suite.Require().NoError(err)
+	defer rdr.Release()
+
+	result := rdr.Record()
+
+	suite.EqualValues(expectedRows, n)
+	suite.True(rdr.Next())
+
+	expectedSchema := arrow.NewSchema([]arrow.Field{
+		{
+			Name: "dense_union#3",
+			Type: arrow.DenseUnionOf(
+				[]arrow.Field{
+				{Name: "bool#0", Type: arrow.FixedWidthTypes.Boolean, Nullable: true},
+				{Name: "int8#1", Type: arrow.PrimitiveTypes.Int8, Nullable: true},
+				{Name: "utf8#2", Type: arrow.BinaryTypes.String, Nullable: true},
+		},
+				[]arrow.UnionTypeCode{0,1,2},
+			),
+		},
+	}, nil)
+
+	expectedRecords, _, err := array.RecordFromJSON(
+		suite.Quirks.Alloc(),
+		expectedSchema,
+		bytes.NewReader([]byte(`[{"dense_union#3":[0,true]}]`)),
+	)
+
+	suite.Require().NoError(err)
+	defer expectedRecords.Release()
+
+	suite.Truef(array.RecordEqual(expectedRecords, result), "expected: %s\ngot: %s", expectedRecords, result)
+
+	suite.False(rdr.Next())
+	suite.Require().NoError(rdr.Err())
+}
+
+
+func (suite *MocksDriverTests) TestDenseUnion3() {
+	expectedRows := 6
+	query := fmt.Sprintf("%d:dense_union<bool,int8,string>", expectedRows)
+	suite.Require().NoError(suite.stmt.SetSqlQuery(query))
+	rdr, n, err := suite.stmt.ExecuteQuery(suite.ctx)
+	suite.Require().NoError(err)
+	defer rdr.Release()
+
+	result := rdr.Record()
+
+	suite.EqualValues(expectedRows, n)
+	suite.True(rdr.Next())
+
+	expectedSchema := arrow.NewSchema([]arrow.Field{
+		{
+			Name: "dense_union#3",
+			Type: arrow.DenseUnionOf(
+				[]arrow.Field{
+				{Name: "bool#0", Type: arrow.FixedWidthTypes.Boolean, Nullable: true},
+				{Name: "int8#1", Type: arrow.PrimitiveTypes.Int8, Nullable: true},
+				{Name: "utf8#2", Type: arrow.BinaryTypes.String, Nullable: true},
+		},
+				[]arrow.UnionTypeCode{0,1,2},
+			),
+		},
+	}, nil)
+
+	expectedRecords, _, err := array.RecordFromJSON(
+		suite.Quirks.Alloc(),
+		expectedSchema,
+		bytes.NewReader([]byte(`[
+			{ "dense_union#3": [0, true] },
+			{ "dense_union#3": [1, 0] },
+			{ "dense_union#3": [2, "0"] },
+			{ "dense_union#3": [0, false] },
+			{ "dense_union#3": [1, 1] },
+			{ "dense_union#3": [2, "1"] }
 		]`)),
 	)
 

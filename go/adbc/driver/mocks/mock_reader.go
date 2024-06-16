@@ -84,6 +84,26 @@ type QueryListener struct {
 	nameIdCounter int
 }
 
+func (l *QueryListener) ExitUnionField(ctx *parser.UnionFieldContext) {
+	// Currently is the same as top level field
+	log.Printf("Exiting union fields: %s", ctx.GetText())
+	fieldName := l.typeStack[len(l.typeStack)-1].Name() + "#" + strconv.Itoa(l.nameIdCounter)
+	l.nameIdCounter++
+	fieldNameNode := ctx.FIELD_NAME()
+
+	if fieldNameNode != nil {
+		fieldName = fieldNameNode.GetText()[1:]
+	}
+
+	l.fields = append(l.fields, &arrow.Field{
+		Name: fieldName,
+		Type: l.typeStack[len(l.typeStack)-1],
+	})
+	log.Printf("Created struct field: %v", l.fields[len(l.fields)-1])
+
+	l.typeStack = l.typeStack[:len(l.typeStack)-1]
+}
+
 func (l *QueryListener) ExitStructField(ctx *parser.StructFieldContext) {
 	// Currently is the same as fields
 	log.Printf("Exiting struct fields: %s", ctx.GetText())
@@ -181,6 +201,11 @@ func (l *QueryListener) EnterStruct(ctx *parser.StructContext) {
 	l.fields = append(l.fields, nil)
 }
 
+func (l *QueryListener) EnterUnion(ctx *parser.UnionContext) {
+	log.Printf("Entering union")
+	l.fields = append(l.fields, nil)
+}
+
 func (l *QueryListener) ExitList(ctx *parser.ListContext) {
 	innerType := l.typeStack[len(l.typeStack)-1]
 	log.Printf("Exiting list, Inner type: %v", innerType)
@@ -221,6 +246,52 @@ func (l *QueryListener) ExitStruct(ctx *parser.StructContext) {
 	thisStruct := arrow.StructOf(structFields...)
 	l.typeStack = append(l.typeStack, thisStruct)
 	log.Printf("Added struct: %v", thisStruct)
+}
+
+func (l *QueryListener) ExitUnion(ctx *parser.UnionContext) {
+	log.Printf("Exiting union")
+	unionName := ctx.GetStart().GetText();
+	unionFields := make([]arrow.Field, 0);
+	// union also have multiple fields, so we keep popping until reaching union start(nil)
+	for l.fields[len(l.fields)-1] != nil {
+		unionFields = append(unionFields, *l.fields[len(l.fields)-1])
+		l.fields = l.fields[:len(l.fields)-1]
+	}
+	l.fields = l.fields[:len(l.fields)-1]
+
+	for i, j := 0, len(unionFields)-1; i < j; i, j = i+1, j-1 {
+		unionFields[i], unionFields[j] = unionFields[j], unionFields[i]
+	}
+
+	typeCodes := make([]arrow.UnionTypeCode, len(unionFields))
+
+	for i, field := range unionFields {
+		typeCodes[i] = arrow.UnionTypeCode(field.Type.ID())
+	}
+
+	var thisUnion arrow.UnionType
+	if unionName == "sparse_union" {
+		thisUnion = arrow.UnionOf(arrow.SparseMode,unionFields,typeCodes)
+	} else if unionName == "dense_union" {
+		thisUnion = arrow.UnionOf(arrow.DenseMode,unionFields,typeCodes)
+	} else {
+		panic(fmt.Sprintf("Unknown union type: %s", unionName))
+	}
+
+	allUnionValues := ctx.AllUnionValue()
+	uvNames := make([]string, len(allUnionValues))
+
+	// set union value metadata
+    for i,uv := range allUnionValues {
+		uvNames[i] = uv.GetText()
+	}
+
+	// md := arrow.NewMetadata([]string{"union_value"},[]string{strings.Join(uvNames, ",")})
+	// thisUnion.SetMetadata(md)
+	// FIXME: find a way to set union value metadata
+
+	l.typeStack = append(l.typeStack, thisUnion)
+	log.Printf("Added union: %v", thisUnion)
 }
 
 func (l* QueryListener)ExitQuery(ctx *parser.QueryContext) {

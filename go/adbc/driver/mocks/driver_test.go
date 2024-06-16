@@ -3,6 +3,7 @@ package mocks_test
 import (
 	"bytes"
 	"context"
+	"encoding/json"
 	"fmt"
 	"testing"
 
@@ -389,6 +390,51 @@ func (suite *MocksDriverTests) TestAlias() {
 			Type: arrow.FixedWidthTypes.Date32,
 		},
 	}, nil)
+
+	expectedRecords, _, err := array.RecordFromJSON(
+		suite.Quirks.Alloc(),
+		expectedSchema,
+		bytes.NewReader([]byte(`[
+			{ "date32#2": "1984-01-01", "float32#1": 0, "int8#0": 0 },
+			{ "date32#2": "1984-01-02", "float32#1": 0.1, "int8#0": 1 }
+		]`)),
+	)
+
+	suite.Require().NoError(err)
+	defer expectedRecords.Release()
+
+	suite.Truef(array.RecordEqual(expectedRecords, result), "expected: %s\ngot: %s", expectedRecords, result)
+
+	suite.False(rdr.Next())
+	suite.Require().NoError(rdr.Err())
+}
+
+func (suite *MocksDriverTests) TestUnion() {
+	suite.T().Skip("union types not supported yet")
+	expectedRows := 1
+	query := fmt.Sprintf("%d:sparse_union<bool>", expectedRows)
+	suite.Require().NoError(suite.stmt.SetSqlQuery(query))
+	rdr, n, err := suite.stmt.ExecuteQuery(suite.ctx)
+	suite.Require().NoError(err)
+	defer rdr.Release()
+
+	result := rdr.Record()
+
+	suite.EqualValues(expectedRows, n)
+	suite.True(rdr.Next())
+
+	expectedSchema := arrow.NewSchema([]arrow.Field{
+		{
+			Name: "union#1",
+			Type: arrow.SparseUnionOf(
+				[]arrow.Field{{Name: "int8#0", Type: arrow.PrimitiveTypes.Int8}},
+				[]arrow.UnionTypeCode{0},
+			),
+		},
+	}, nil)
+
+	j,_ := json.Marshal(result)
+	fmt.Println(string(j))
 
 	expectedRecords, _, err := array.RecordFromJSON(
 		suite.Quirks.Alloc(),

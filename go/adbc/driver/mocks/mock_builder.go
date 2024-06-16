@@ -67,8 +67,8 @@ func init(){
 		int(arrow.DECIMAL256): mockDecimal256,
 		int(arrow.LIST):      mockList,
 		int(arrow.STRUCT):    mockStruct,
-		// int(arrow.SPARSE_UNION): mockSparseUnion,
-		// int(arrow.DENSE_UNION):  mockDenseUnion,
+		int(arrow.SPARSE_UNION): mockSparseUnion,
+		int(arrow.DENSE_UNION):  mockDenseUnion,
 		// int(arrow.DICTIONARY):   mockDictionary,
 		// int(arrow.MAP):          mockMap,
 		//
@@ -372,6 +372,45 @@ func mockStruct(field arrow.Field, rows int) arrow.Array {
 	structData := array.NewData(field.Type, rows, []*memory.Buffer{nil}, innerDatas, 0, 0)
 
 	return array.NewStructData(structData)
+}
+
+func mockSparseUnion(field arrow.Field, rows int) arrow.Array {
+
+	panic("not implemented")
+
+	// until we figure out how to get values from the metadata
+	// we'll just create 1 value for each field
+	// so union<bool,string,int8> will be [true, "0", 0]
+
+	unionType := field.Type.(*arrow.SparseUnionType)
+	innerFields := unionType.Fields()
+
+	typeIdsBuilder := array.NewInt8Builder(memory.DefaultAllocator)
+	for i := 0; i < len(innerFields); i++ {
+		typeIdsBuilder.Append(int8(i))
+	}
+	typeIds := typeIdsBuilder.NewArray()
+
+	innerDatas := make([]arrow.Array, len(innerFields))
+	for i := 0; i < len(innerFields); i++ {
+		innerField := innerFields[i]
+		innerDatas[i] = handlerForType[int(innerField.Type.ID())](innerField, 1)
+	}
+	
+	thisUnion,err := array.NewSparseUnionFromArrays(
+		typeIds,
+		innerDatas,
+		arrow.UnionTypeCode(2),
+	)
+
+	if err != nil {
+		panic(err)
+	}
+	return thisUnion
+}
+
+func mockDenseUnion(field arrow.Field, rows int) arrow.Array {
+	panic("not implemented")
 }
 
 func mockDuration(field arrow.Field, rows int) arrow.Array {

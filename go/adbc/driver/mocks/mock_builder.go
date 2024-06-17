@@ -69,7 +69,7 @@ func init(){
 		int(arrow.STRUCT):    mockStruct,
 		int(arrow.SPARSE_UNION): mockSparseUnion,
 		int(arrow.DENSE_UNION):  mockDenseUnion,
-		// int(arrow.DICTIONARY):   mockDictionary,
+		int(arrow.DICTIONARY):   mockDictionary,
 		// int(arrow.MAP):          mockMap,
 		//
 		// TODO: add other types
@@ -439,6 +439,20 @@ func mockDenseUnion(field arrow.Field, rows int) arrow.Array {
 		panic(err)
 	}
 	return thisUnion
+}
+
+func mockDictionary(field arrow.Field, rows int) arrow.Array {
+	// indexType := arrow.PrimitiveTypes.Int32
+	valueType := field.Type.(*arrow.DictionaryType).ValueType
+	values:= handlerForType[int(valueType.ID())](field, rows)
+
+	indicesBuilder := array.NewInt32Builder(memory.DefaultAllocator)
+	for i := 0; i < rows; i++ {
+		indicesBuilder.Append(int32(i))
+	}
+	indices := indicesBuilder.NewArray()
+
+	return array.NewDictionaryArray(field.Type, indices, values)
 }
 
 func mockDuration(field arrow.Field, rows int) arrow.Array {

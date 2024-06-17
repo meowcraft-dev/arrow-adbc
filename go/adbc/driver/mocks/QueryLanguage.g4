@@ -19,20 +19,14 @@ type:
 
 union: (SPARSE_UNION | DENSE_UNION) '<' unionField (
 		',' unionField
-	)* ('%' unionValue (',' unionValue)*)? '>';
-dictionary:
-	('dict' | 'dictionary') '<' type ',' dictEntry (
-		',' dictEntry
 	)* '>';
+dictionary: ('dict' | 'dictionary') '<' type '>';
 list: 'list' '<' (COUNT)? type '>';
 struct: 'struct' '<' structField (',' structField)* '>';
 fixedSizeBinary: 'fixed_size_binary' '<' BYTE_WIDTH '>';
 decimal128: 'decimal128' '<' DECIMAL_PS '>';
-decimal256: 'decimal128' '<' DECIMAL_PS '>';
+decimal256: 'decimal256' '<' DECIMAL_PS '>';
 runEndEncoded: ('ree' | 'run_end_encoded') '<' type '>';
-
-unionValue: '_' | UNION_VALUE_NAME;
-dictEntry: '_' | DICT_ENTRY;
 
 simpleTypes:
 	UINT8

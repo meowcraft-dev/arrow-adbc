@@ -47,12 +47,6 @@ type QueryLanguageListener interface {
 	// EnterRunEndEncoded is called when entering the runEndEncoded production.
 	EnterRunEndEncoded(c *RunEndEncodedContext)
 
-	// EnterUnionValue is called when entering the unionValue production.
-	EnterUnionValue(c *UnionValueContext)
-
-	// EnterDictEntry is called when entering the dictEntry production.
-	EnterDictEntry(c *DictEntryContext)
-
 	// EnterSimpleTypes is called when entering the simpleTypes production.
 	EnterSimpleTypes(c *SimpleTypesContext)
 
@@ -94,12 +88,6 @@ type QueryLanguageListener interface {
 
 	// ExitRunEndEncoded is called when exiting the runEndEncoded production.
 	ExitRunEndEncoded(c *RunEndEncodedContext)
-
-	// ExitUnionValue is called when exiting the unionValue production.
-	ExitUnionValue(c *UnionValueContext)
-
-	// ExitDictEntry is called when exiting the dictEntry production.
-	ExitDictEntry(c *DictEntryContext)
 
 	// ExitSimpleTypes is called when exiting the simpleTypes production.
 	ExitSimpleTypes(c *SimpleTypesContext)

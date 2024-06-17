@@ -99,18 +99,6 @@ func (s *BaseQueryLanguageListener) EnterRunEndEncoded(ctx *RunEndEncodedContext
 // ExitRunEndEncoded is called when production runEndEncoded is exited.
 func (s *BaseQueryLanguageListener) ExitRunEndEncoded(ctx *RunEndEncodedContext) {}
 
-// EnterUnionValue is called when production unionValue is entered.
-func (s *BaseQueryLanguageListener) EnterUnionValue(ctx *UnionValueContext) {}
-
-// ExitUnionValue is called when production unionValue is exited.
-func (s *BaseQueryLanguageListener) ExitUnionValue(ctx *UnionValueContext) {}
-
-// EnterDictEntry is called when production dictEntry is entered.
-func (s *BaseQueryLanguageListener) EnterDictEntry(ctx *DictEntryContext) {}
-
-// ExitDictEntry is called when production dictEntry is exited.
-func (s *BaseQueryLanguageListener) ExitDictEntry(ctx *DictEntryContext) {}
-
 // EnterSimpleTypes is called when production simpleTypes is entered.
 func (s *BaseQueryLanguageListener) EnterSimpleTypes(ctx *SimpleTypesContext) {}
 

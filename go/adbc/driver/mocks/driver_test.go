@@ -3,7 +3,6 @@ package mocks_test
 import (
 	"bytes"
 	"context"
-	"encoding/json"
 	"fmt"
 	"testing"
 
@@ -427,11 +426,11 @@ func (suite *MocksDriverTests) TestSparseUnion1() {
 			Name: "sparse_union#3",
 			Type: arrow.SparseUnionOf(
 				[]arrow.Field{
-				{Name: "bool#0", Type: arrow.FixedWidthTypes.Boolean, Nullable: true},
-				{Name: "int8#1", Type: arrow.PrimitiveTypes.Int8, Nullable: true},
-				{Name: "utf8#2", Type: arrow.BinaryTypes.String, Nullable: true},
-		},
-				[]arrow.UnionTypeCode{0,1,2},
+					{Name: "bool#0", Type: arrow.FixedWidthTypes.Boolean, Nullable: true},
+					{Name: "int8#1", Type: arrow.PrimitiveTypes.Int8, Nullable: true},
+					{Name: "utf8#2", Type: arrow.BinaryTypes.String, Nullable: true},
+				},
+				[]arrow.UnionTypeCode{0, 1, 2},
 			),
 		},
 	}, nil)
@@ -455,7 +454,6 @@ func (suite *MocksDriverTests) TestSparseUnion1() {
 	suite.Require().NoError(rdr.Err())
 }
 
-
 func (suite *MocksDriverTests) TestSparseUnion2() {
 	expectedRows := 1
 	query := fmt.Sprintf("%d:sparse_union<bool,int8,string>", expectedRows)
@@ -474,11 +472,11 @@ func (suite *MocksDriverTests) TestSparseUnion2() {
 			Name: "sparse_union#3",
 			Type: arrow.SparseUnionOf(
 				[]arrow.Field{
-				{Name: "bool#0", Type: arrow.FixedWidthTypes.Boolean, Nullable: true},
-				{Name: "int8#1", Type: arrow.PrimitiveTypes.Int8, Nullable: true},
-				{Name: "utf8#2", Type: arrow.BinaryTypes.String, Nullable: true},
-		},
-				[]arrow.UnionTypeCode{0,1,2},
+					{Name: "bool#0", Type: arrow.FixedWidthTypes.Boolean, Nullable: true},
+					{Name: "int8#1", Type: arrow.PrimitiveTypes.Int8, Nullable: true},
+					{Name: "utf8#2", Type: arrow.BinaryTypes.String, Nullable: true},
+				},
+				[]arrow.UnionTypeCode{0, 1, 2},
 			),
 		},
 	}, nil)
@@ -498,7 +496,6 @@ func (suite *MocksDriverTests) TestSparseUnion2() {
 	suite.Require().NoError(rdr.Err())
 }
 
-
 func (suite *MocksDriverTests) TestSparseUnion3() {
 	expectedRows := 5
 	query := fmt.Sprintf("%d:sparse_union<bool,int8,string>", expectedRows)
@@ -517,11 +514,11 @@ func (suite *MocksDriverTests) TestSparseUnion3() {
 			Name: "sparse_union#3",
 			Type: arrow.SparseUnionOf(
 				[]arrow.Field{
-				{Name: "bool#0", Type: arrow.FixedWidthTypes.Boolean, Nullable: true},
-				{Name: "int8#1", Type: arrow.PrimitiveTypes.Int8, Nullable: true},
-				{Name: "utf8#2", Type: arrow.BinaryTypes.String, Nullable: true},
-		},
-				[]arrow.UnionTypeCode{0,1,2},
+					{Name: "bool#0", Type: arrow.FixedWidthTypes.Boolean, Nullable: true},
+					{Name: "int8#1", Type: arrow.PrimitiveTypes.Int8, Nullable: true},
+					{Name: "utf8#2", Type: arrow.BinaryTypes.String, Nullable: true},
+				},
+				[]arrow.UnionTypeCode{0, 1, 2},
 			),
 		},
 	}, nil)
@@ -547,7 +544,6 @@ func (suite *MocksDriverTests) TestSparseUnion3() {
 	suite.Require().NoError(rdr.Err())
 }
 
-
 func (suite *MocksDriverTests) TestDenseUnion1() {
 	expectedRows := 3
 	query := fmt.Sprintf("%d:dense_union<bool,int8,string>", expectedRows)
@@ -566,17 +562,14 @@ func (suite *MocksDriverTests) TestDenseUnion1() {
 			Name: "dense_union#3",
 			Type: arrow.DenseUnionOf(
 				[]arrow.Field{
-				{Name: "bool#0", Type: arrow.FixedWidthTypes.Boolean, Nullable: true},
-				{Name: "int8#1", Type: arrow.PrimitiveTypes.Int8, Nullable: true},
-				{Name: "utf8#2", Type: arrow.BinaryTypes.String, Nullable: true},
-		},
-				[]arrow.UnionTypeCode{0,1,2},
+					{Name: "bool#0", Type: arrow.FixedWidthTypes.Boolean, Nullable: true},
+					{Name: "int8#1", Type: arrow.PrimitiveTypes.Int8, Nullable: true},
+					{Name: "utf8#2", Type: arrow.BinaryTypes.String, Nullable: true},
+				},
+				[]arrow.UnionTypeCode{0, 1, 2},
 			),
 		},
 	}, nil)
-
-	j,_ := json.Marshal(result)
-	fmt.Println(string(j))
 
 	expectedRecords, _, err := array.RecordFromJSON(
 		suite.Quirks.Alloc(),
@@ -597,7 +590,6 @@ func (suite *MocksDriverTests) TestDenseUnion1() {
 	suite.Require().NoError(rdr.Err())
 }
 
-
 func (suite *MocksDriverTests) TestDenseUnion2() {
 	expectedRows := 1
 	query := fmt.Sprintf("%d:dense_union<bool,int8,string>", expectedRows)
@@ -616,11 +608,11 @@ func (suite *MocksDriverTests) TestDenseUnion2() {
 			Name: "dense_union#3",
 			Type: arrow.DenseUnionOf(
 				[]arrow.Field{
-				{Name: "bool#0", Type: arrow.FixedWidthTypes.Boolean, Nullable: true},
-				{Name: "int8#1", Type: arrow.PrimitiveTypes.Int8, Nullable: true},
-				{Name: "utf8#2", Type: arrow.BinaryTypes.String, Nullable: true},
-		},
-				[]arrow.UnionTypeCode{0,1,2},
+					{Name: "bool#0", Type: arrow.FixedWidthTypes.Boolean, Nullable: true},
+					{Name: "int8#1", Type: arrow.PrimitiveTypes.Int8, Nullable: true},
+					{Name: "utf8#2", Type: arrow.BinaryTypes.String, Nullable: true},
+				},
+				[]arrow.UnionTypeCode{0, 1, 2},
 			),
 		},
 	}, nil)
@@ -640,7 +632,6 @@ func (suite *MocksDriverTests) TestDenseUnion2() {
 	suite.Require().NoError(rdr.Err())
 }
 
-
 func (suite *MocksDriverTests) TestDenseUnion3() {
 	expectedRows := 6
 	query := fmt.Sprintf("%d:dense_union<bool,int8,string>", expectedRows)
@@ -659,11 +650,11 @@ func (suite *MocksDriverTests) TestDenseUnion3() {
 			Name: "dense_union#3",
 			Type: arrow.DenseUnionOf(
 				[]arrow.Field{
-				{Name: "bool#0", Type: arrow.FixedWidthTypes.Boolean, Nullable: true},
-				{Name: "int8#1", Type: arrow.PrimitiveTypes.Int8, Nullable: true},
-				{Name: "utf8#2", Type: arrow.BinaryTypes.String, Nullable: true},
-		},
-				[]arrow.UnionTypeCode{0,1,2},
+					{Name: "bool#0", Type: arrow.FixedWidthTypes.Boolean, Nullable: true},
+					{Name: "int8#1", Type: arrow.PrimitiveTypes.Int8, Nullable: true},
+					{Name: "utf8#2", Type: arrow.BinaryTypes.String, Nullable: true},
+				},
+				[]arrow.UnionTypeCode{0, 1, 2},
 			),
 		},
 	}, nil)
@@ -709,7 +700,7 @@ func (suite *MocksDriverTests) TestDictionary() {
 			IndexType: arrow.PrimitiveTypes.Int32,
 			ValueType: arrow.BinaryTypes.String,
 		},
-	},}, nil)
+	}}, nil)
 
 	expectedRecords, _, err := array.RecordFromJSON(
 		suite.Quirks.Alloc(),

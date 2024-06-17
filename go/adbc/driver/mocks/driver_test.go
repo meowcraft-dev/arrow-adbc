@@ -3,7 +3,9 @@ package mocks_test
 import (
 	"bytes"
 	"context"
+	"encoding/json"
 	"fmt"
+	"log"
 	"testing"
 
 	"github.com/apache/arrow-adbc/go/adbc"
@@ -753,6 +755,191 @@ func (suite *MocksDriverTests) TestRee() {
 	defer expectedRecords.Release()
 
 	suite.Truef(array.RecordEqual(expectedRecords, result), "expected: %s\ngot: %s", expectedRecords, result)
+
+	suite.False(rdr.Next())
+	suite.Require().NoError(rdr.Err())
+}
+
+func (suite *MocksDriverTests) Test() {
+	expectedRows := 3
+	query := fmt.Sprintf("%d:ree<string>", expectedRows)
+	suite.Require().NoError(suite.stmt.SetSqlQuery(query))
+	rdr, n, err := suite.stmt.ExecuteQuery(suite.ctx)
+	suite.Require().NoError(err)
+	defer rdr.Release()
+
+	result := rdr.Record()
+
+	suite.EqualValues(expectedRows, n)
+	suite.True(rdr.Next())
+
+	expectedSchema := arrow.NewSchema([]arrow.Field{{
+		Name: "run_end_encoded#0",
+		Type: arrow.RunEndEncodedOf(arrow.PrimitiveTypes.Int32, arrow.BinaryTypes.String),
+	}}, nil)
+
+	expectedRecords, _, err := array.RecordFromJSON(
+		suite.Quirks.Alloc(),
+		expectedSchema,
+		bytes.NewReader([]byte(`[
+			{ "run_end_encoded#0": "1" },
+			{ "run_end_encoded#0": "2" },
+			{ "run_end_encoded#0": "3" }
+		]`)),
+	)
+
+	suite.Require().NoError(err)
+	defer expectedRecords.Release()
+
+	suite.Truef(array.RecordEqual(expectedRecords, result), "expected: %s\ngot: %s", expectedRecords, result)
+
+	suite.False(rdr.Next())
+	suite.Require().NoError(rdr.Err())
+}
+
+func (suite *MocksDriverTests) TestEverything() {
+	suite.T().Skip("TODO")
+	expectedRows := 6
+	query := fmt.Sprintf(`%d:
+		list<struct<u8,u16,u32,u64,i8,i16,i32,i64>>,
+		dense_union<f16,f32,f64,bool,dict<string>#foo,list<3:z>>,
+		ree<time32s>,
+		t32ms, ttu, ttn,
+		fixed_size_binary<5>,
+		timestamp_s, timestamp_ms, timestamp_us, timestamp_ns,
+		duration_s, duration_ms, duration_us, duration_ns,
+		decimal128<38:10>, decimal256<76:20>,
+		interval_month, interval_daytime, interval_monthdaynano
+	`, expectedRows)
+	suite.Require().NoError(suite.stmt.SetSqlQuery(query))
+	rdr, n, err := suite.stmt.ExecuteQuery(suite.ctx)
+	suite.Require().NoError(err)
+	defer rdr.Release()
+
+	result := rdr.Record()
+
+	j, _ := json.Marshal(result)
+	log.Println(string(j))
+
+	suite.EqualValues(expectedRows, n)
+	suite.True(rdr.Next())
+
+	// expectedSchema := arrow.NewSchema([]arrow.Field{
+	// 	{
+	// 		Name: "list#8",
+	// 		Type: arrow.StructOf(
+	// 			arrow.Field{Name: "uint8#0", Type: arrow.PrimitiveTypes.Uint8, Nullable: true},
+	// 			arrow.Field{Name: "uint16#1", Type: arrow.PrimitiveTypes.Uint16, Nullable: true},
+	// 			arrow.Field{Name: "uint32#2", Type: arrow.PrimitiveTypes.Uint32, Nullable: true},
+	// 			arrow.Field{Name: "uint64#3", Type: arrow.PrimitiveTypes.Uint64, Nullable: true},
+	// 			arrow.Field{Name: "int8#4", Type: arrow.PrimitiveTypes.Int8, Nullable: true},
+	// 			arrow.Field{Name: "int16#5", Type: arrow.PrimitiveTypes.Int16, Nullable: true},
+	// 			arrow.Field{Name: "int32#6", Type: arrow.PrimitiveTypes.Int32, Nullable: true},
+	// 			arrow.Field{Name: "int64#7", Type: arrow.PrimitiveTypes.Int64, Nullable: true},
+	// 		),
+	// 	},
+	// 	{
+	// 		Name: "dense_union#15",
+	// 		Type: arrow.DenseUnionOf(
+	// 			[]arrow.Field{
+	// 				{Name: "float16#9", Type: arrow.FixedWidthTypes.Float16, Nullable: true},
+	// 				{Name: "float32#10", Type: arrow.PrimitiveTypes.Float32, Nullable: true},
+	// 				{Name: "float64#11", Type: arrow.PrimitiveTypes.Float64, Nullable: true},
+	// 				{Name: "bool#12", Type: arrow.FixedWidthTypes.Boolean, Nullable: true},
+	// 				{Name: "foo", Type: &arrow.DictionaryType{
+	// 					IndexType:   arrow.PrimitiveTypes.Int32,
+	// 					ValueType:   arrow.BinaryTypes.String,
+	// 				}},
+	// 				{Name: "list#14", Type: arrow.ListOf(arrow.BinaryTypes.Binary), Nullable: true},
+	// 			},
+	// 			[]arrow.UnionTypeCode{0, 1, 2, 3, 4, 5},
+	// 		),
+	// 	},
+	// 	{
+	// 		Name: "run_end_encoded#16",
+	// 		Type: arrow.RunEndEncodedOf(arrow.PrimitiveTypes.Int32, arrow.FixedWidthTypes.Time32s),
+	// 	},
+	// 	{
+	// 		Name: "time32#17",
+	// 		Type: arrow.FixedWidthTypes.Time32ms,
+	// 	},
+	// 	{
+	// 		Name: "time64#18",
+	// 		Type: arrow.FixedWidthTypes.Time64us,
+	// 	},
+	// 	{
+	// 		Name: "time64#19",
+	// 		Type: arrow.FixedWidthTypes.Time64ns,
+	// 	},
+	// 	{
+	// 		Name: "fixed_size_binary#20",
+	// 		Type: &arrow.FixedSizeBinaryType{ByteWidth: 5},
+	// 	},
+	// 	{
+	// 		Name: "timestamp#21",
+	// 		Type: arrow.FixedWidthTypes.Timestamp_s,
+	// 	},
+	// 	{
+	// 		Name: "timestamp#22",
+	// 		Type: arrow.FixedWidthTypes.Timestamp_ms,
+	// 	},
+	// 	{
+	// 		Name: "timestamp#23",
+	// 		Type: arrow.FixedWidthTypes.Timestamp_us,
+	// 	},
+	// 	{
+	// 		Name: "timestamp#24",
+	// 		Type: arrow.FixedWidthTypes.Timestamp_ns,
+	// 	},
+	// 	{
+	// 		Name: "duration#25",
+	// 		Type: arrow.FixedWidthTypes.Duration_s,
+	// 	},
+	// 	{
+	// 		Name: "duration#26",
+	// 		Type: arrow.FixedWidthTypes.Duration_ms,
+	// 	},
+	// 	{
+	// 		Name: "duration#27",
+	// 		Type: arrow.FixedWidthTypes.Duration_us,
+	// 	},
+	// 	{
+	// 		Name: "duration#28",
+	// 		Type: arrow.FixedWidthTypes.Duration_ns,
+	// 	},
+	// 	{
+	// 		Name: "decimal#29",
+	// 		Type: &arrow.Decimal128Type{Precision: 38, Scale: 10},
+	// 	},
+	// 	{
+	// 		Name: "decimal256#30",
+	// 		Type: &arrow.Decimal256Type{Precision: 76, Scale: 20},
+	// 	},
+	// 	{
+	// 		Name: "month_interval#31",
+	// 		Type: arrow.FixedWidthTypes.MonthInterval,
+	// 	},
+	// 	{
+	// 		Name: "day_time_interval#32",
+	// 		Type: arrow.FixedWidthTypes.DayTimeInterval,
+	// 	},
+	// 	{
+	// 		Name: "month_day_nano_interval#33",
+	// 		Type: arrow.FixedWidthTypes.MonthDayNanoInterval,
+	// 	},
+	// }, nil)
+
+	// The json doesn't work :(
+	// expectedRecords, _, err := array.RecordFromJSON(
+	// 	suite.Quirks.Alloc(),
+	// 	expectedSchema,
+	// 	bytes.NewReader([]byte(``)),
+	// )
+
+	suite.Require().NoError(err)
+	// defer expectedRecords.Release()
+
+	// suite.Truef(array.RecordEqual(expectedRecords, result), "expected: %s\ngot: %s", expectedRecords, result)
 
 	suite.False(rdr.Next())
 	suite.Require().NoError(rdr.Err())

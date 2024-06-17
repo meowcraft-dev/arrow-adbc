@@ -444,7 +444,7 @@ func mockDenseUnion(field arrow.Field, rows int) arrow.Array {
 func mockDictionary(field arrow.Field, rows int) arrow.Array {
 	// indexType := arrow.PrimitiveTypes.Int32
 	valueType := field.Type.(*arrow.DictionaryType).ValueType
-	values := handlerForType[int(valueType.ID())](field, rows)
+	values := handlerForType[int(valueType.ID())](arrow.Field{Type: valueType}, rows)
 
 	indicesBuilder := array.NewInt32Builder(memory.DefaultAllocator)
 	for i := 0; i < rows; i++ {

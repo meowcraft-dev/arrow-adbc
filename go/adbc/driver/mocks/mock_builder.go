@@ -35,7 +35,7 @@ import (
 
 var handlerForType map[int]func(field arrow.Field, rows int) arrow.Array
 
-func init(){
+func init() {
 	handlerForType = map[int]func(field arrow.Field, rows int) arrow.Array{
 		int(arrow.NULL):              mockNull,
 		int(arrow.BOOL):              mockBool,
@@ -58,18 +58,18 @@ func init(){
 		//
 		// commented out until mock function implemented
 		//
-		int(arrow.TIMESTAMP): mockTimestamp,
-		int(arrow.TIME32):   mockTime32,
-		int(arrow.TIME64):   mockTime64,
-		int(arrow.INTERVAL_MONTHS): mockIntervalMonths,
+		int(arrow.TIMESTAMP):         mockTimestamp,
+		int(arrow.TIME32):            mockTime32,
+		int(arrow.TIME64):            mockTime64,
+		int(arrow.INTERVAL_MONTHS):   mockIntervalMonths,
 		int(arrow.INTERVAL_DAY_TIME): mockIntervalDays,
-		int(arrow.DECIMAL128): mockDecimal128,
-		int(arrow.DECIMAL256): mockDecimal256,
-		int(arrow.LIST):      mockList,
-		int(arrow.STRUCT):    mockStruct,
-		int(arrow.SPARSE_UNION): mockSparseUnion,
-		int(arrow.DENSE_UNION):  mockDenseUnion,
-		int(arrow.DICTIONARY):   mockDictionary,
+		int(arrow.DECIMAL128):        mockDecimal128,
+		int(arrow.DECIMAL256):        mockDecimal256,
+		int(arrow.LIST):              mockList,
+		int(arrow.STRUCT):            mockStruct,
+		int(arrow.SPARSE_UNION):      mockSparseUnion,
+		int(arrow.DENSE_UNION):       mockDenseUnion,
+		int(arrow.DICTIONARY):        mockDictionary,
 		// int(arrow.MAP):          mockMap,
 		//
 		// TODO: add other types
@@ -83,9 +83,9 @@ func mockNull(field arrow.Field, rows int) arrow.Array {
 
 func mockBool(field arrow.Field, rows int) arrow.Array {
 	builder := array.NewBooleanBuilder(memory.DefaultAllocator)
-	
+
 	for i := 0; i < rows; i++ {
-		builder.Append(i % 2 == 0)
+		builder.Append(i%2 == 0)
 	}
 
 	return builder.NewArray()
@@ -93,7 +93,7 @@ func mockBool(field arrow.Field, rows int) arrow.Array {
 
 func mockUint8(field arrow.Field, rows int) arrow.Array {
 	builder := array.NewUint8Builder(memory.DefaultAllocator)
-	
+
 	for i := 0; i < rows; i++ {
 		builder.Append(uint8(i))
 	}
@@ -146,7 +146,7 @@ func mockInt32(field arrow.Field, rows int) arrow.Array {
 
 	for i := 0; i < rows; i++ {
 		builder.Append(int32(i * []int{-1, 1}[i%2]))
-	}	
+	}
 
 	return builder.NewArray()
 }
@@ -175,7 +175,7 @@ func mockFloat16(field arrow.Field, rows int) arrow.Array {
 	builder := array.NewFloat16Builder(memory.DefaultAllocator)
 
 	for i := 0; i < rows; i++ {
-		builder.Append(float16.New(float32(i * []int{-1, 1}[i%2])/10))
+		builder.Append(float16.New(float32(i*[]int{-1, 1}[i%2]) / 10))
 	}
 
 	return builder.NewArray()
@@ -185,7 +185,7 @@ func mockFloat32(field arrow.Field, rows int) arrow.Array {
 	builder := array.NewFloat32Builder(memory.DefaultAllocator)
 
 	for i := 0; i < rows; i++ {
-		builder.Append(float32(i * []int{-1, 1}[i%2])/10)
+		builder.Append(float32(i*[]int{-1, 1}[i%2]) / 10)
 	}
 
 	return builder.NewArray()
@@ -195,7 +195,7 @@ func mockFloat64(field arrow.Field, rows int) arrow.Array {
 	builder := array.NewFloat64Builder(memory.DefaultAllocator)
 
 	for i := 0; i < rows; i++ {
-		builder.Append(float64(i * []int{-1, 1}[i%2])/10)
+		builder.Append(float64(i*[]int{-1, 1}[i%2]) / 10)
 	}
 
 	return builder.NewArray()
@@ -222,7 +222,7 @@ func mockBinary(field arrow.Field, rows int) arrow.Array {
 }
 
 func mockFixedSizeBinary(field arrow.Field, rows int) arrow.Array {
-	builder := array.NewFixedSizeBinaryBuilder(memory.DefaultAllocator,field.Type.(*arrow.FixedSizeBinaryType))
+	builder := array.NewFixedSizeBinaryBuilder(memory.DefaultAllocator, field.Type.(*arrow.FixedSizeBinaryType))
 	byteWidth := field.Type.(*arrow.FixedSizeBinaryType).ByteWidth
 
 	for i := 0; i < rows; i++ {
@@ -259,7 +259,7 @@ func mockTimestamp(field arrow.Field, rows int) arrow.Array {
 	builder := array.NewTimestampBuilder(memory.DefaultAllocator, field.Type.(*arrow.TimestampType))
 
 	for i := 0; i < rows; i++ {
-		timestamp,_ := arrow.TimestampFromTime(time.Date(1984, 1, 1, 0, 0, 0, 0, time.UTC).AddDate(0, 0, i), field.Type.(*arrow.TimestampType).TimeUnit())
+		timestamp, _ := arrow.TimestampFromTime(time.Date(1984, 1, 1, 0, 0, 0, 0, time.UTC).AddDate(0, 0, i), field.Type.(*arrow.TimestampType).TimeUnit())
 		builder.Append(timestamp)
 	}
 
@@ -345,13 +345,13 @@ func mockList(field arrow.Field, rows int) arrow.Array {
 
 	offsetBytes := make([]byte, (rows+1)*4)
 
-	for i,v := range offsets {
+	for i, v := range offsets {
 		binary.LittleEndian.PutUint32(offsetBytes[i*4:], uint32(v))
 	}
 
 	offsetsBuffer := memory.NewBufferBytes(offsetBytes)
 
-	arrData := array.NewData(field.Type,rows,[]*memory.Buffer{nil,offsetsBuffer },[]arrow.ArrayData{innerValue.Data()},0,0)
+	arrData := array.NewData(field.Type, rows, []*memory.Buffer{nil, offsetsBuffer}, []arrow.ArrayData{innerValue.Data()}, 0, 0)
 
 	return array.NewListData(arrData)
 }
@@ -395,11 +395,11 @@ func mockSparseUnion(field arrow.Field, rows int) arrow.Array {
 	}
 
 	names := make([]string, len(innerFields))
-	for i,f := range innerFields {
+	for i, f := range innerFields {
 		names[i] = f.Name
 	}
-	
-	thisUnion,err := array.NewSparseUnionFromArraysWithFields(typeIds, innerDatas, names)
+
+	thisUnion, err := array.NewSparseUnionFromArraysWithFields(typeIds, innerDatas, names)
 
 	if err != nil {
 		panic(err)
@@ -424,7 +424,7 @@ func mockDenseUnion(field arrow.Field, rows int) arrow.Array {
 	}
 
 	names := make([]string, len(innerFields))
-	for i,f := range innerFields {
+	for i, f := range innerFields {
 		names[i] = f.Name
 	}
 
@@ -433,7 +433,7 @@ func mockDenseUnion(field arrow.Field, rows int) arrow.Array {
 		offsetsBuilder.Append(int32(i / len(innerFields)))
 	}
 
-	thisUnion,err := array.NewDenseUnionFromArraysWithFields(typeIds,offsetsBuilder.NewArray(), innerDatas, names)
+	thisUnion, err := array.NewDenseUnionFromArraysWithFields(typeIds, offsetsBuilder.NewArray(), innerDatas, names)
 
 	if err != nil {
 		panic(err)
@@ -444,7 +444,7 @@ func mockDenseUnion(field arrow.Field, rows int) arrow.Array {
 func mockDictionary(field arrow.Field, rows int) arrow.Array {
 	// indexType := arrow.PrimitiveTypes.Int32
 	valueType := field.Type.(*arrow.DictionaryType).ValueType
-	values:= handlerForType[int(valueType.ID())](field, rows)
+	values := handlerForType[int(valueType.ID())](field, rows)
 
 	indicesBuilder := array.NewInt32Builder(memory.DefaultAllocator)
 	for i := 0; i < rows; i++ {

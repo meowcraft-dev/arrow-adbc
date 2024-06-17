@@ -19,7 +19,9 @@ package mocks
 
 import (
 	"fmt"
+	"io"
 	"log"
+	"os"
 	"strconv"
 	"strings"
 	"sync/atomic"
@@ -28,6 +30,12 @@ import (
 	"github.com/apache/arrow-adbc/go/adbc/driver/mocks/parser"
 	"github.com/apache/arrow/go/v17/arrow"
 )
+
+func init() {
+	if os.Getenv("ADBC_MOCKS_DEBUG") == "" {
+		log.SetOutput(io.Discard)
+	}
+}
 
 type mockReader struct {
 	refCount           int64
@@ -71,16 +79,16 @@ var (
 		"interval_month":        {Name: "interval_month", Type: arrow.FixedWidthTypes.MonthInterval},
 		"interval_daytime":      {Name: "interval_daytime", Type: arrow.FixedWidthTypes.DayTimeInterval},
 		"interval_monthdaynano": {Name: "interval_monthdaynano", Type: arrow.FixedWidthTypes.MonthDayNanoInterval},
-		"null": {Name: "null", Type: arrow.Null},
+		"null":                  {Name: "null", Type: arrow.Null},
 	}
 )
 
 type QueryListener struct {
 	*parser.BaseQueryLanguageListener
-	lexer *parser.QueryLanguageLexer
-	typeStack []arrow.DataType
-	fields []*arrow.Field
-	rows      int
+	lexer         *parser.QueryLanguageLexer
+	typeStack     []arrow.DataType
+	fields        []*arrow.Field
+	rows          int
 	nameIdCounter int
 }
 
@@ -96,8 +104,8 @@ func (l *QueryListener) ExitUnionField(ctx *parser.UnionFieldContext) {
 	}
 
 	l.fields = append(l.fields, &arrow.Field{
-		Name: fieldName,
-		Type: l.typeStack[len(l.typeStack)-1],
+		Name:     fieldName,
+		Type:     l.typeStack[len(l.typeStack)-1],
 		Nullable: true,
 	})
 	log.Printf("Created union field: %v", l.fields[len(l.fields)-1])
@@ -145,9 +153,9 @@ func (l *QueryListener) ExitTopLevelField(ctx *parser.TopLevelFieldContext) {
 }
 
 func (l *QueryListener) EnterSimpleTypes(ctx *parser.SimpleTypesContext) {
-	tokenType := ctx.GetStart().GetTokenType();
+	tokenType := ctx.GetStart().GetTokenType()
 	typeTokenName := l.lexer.GetSymbolicNames()[tokenType]
-	typeName := strings.ToLower(typeTokenName);
+	typeName := strings.ToLower(typeTokenName)
 	log.Printf("Entering simple type: %s", typeName)
 	if dataType, ok := availableTypes[typeName]; ok {
 		log.Printf("Adding data type: %v", dataType.Type)
@@ -218,7 +226,7 @@ func (l *QueryListener) ExitList(ctx *parser.ListContext) {
 
 	listLength := 1
 	if ctx.COUNT() != nil {
-		rowCountStr := strings.Split(ctx.COUNT().GetText(),":")[0]
+		rowCountStr := strings.Split(ctx.COUNT().GetText(), ":")[0]
 		rowCount, err := strconv.Atoi(rowCountStr)
 		if err != nil {
 			panic(fmt.Sprintf("Invalid row count in list: %s, check parser", rowCountStr))
@@ -235,7 +243,7 @@ func (l *QueryListener) ExitList(ctx *parser.ListContext) {
 
 func (l *QueryListener) ExitStruct(ctx *parser.StructContext) {
 	log.Printf("Exiting struct")
-	structFields := make([]arrow.Field, 0);
+	structFields := make([]arrow.Field, 0)
 	// struct can have multiple fields, so we keep popping until reaching struct start(nil)
 	for l.fields[len(l.fields)-1] != nil {
 		structFields = append(structFields, *l.fields[len(l.fields)-1])
@@ -255,8 +263,8 @@ func (l *QueryListener) ExitStruct(ctx *parser.StructContext) {
 
 func (l *QueryListener) ExitUnion(ctx *parser.UnionContext) {
 	log.Printf("Exiting union")
-	unionName := ctx.GetStart().GetText();
-	unionFields := make([]arrow.Field, 0);
+	unionName := ctx.GetStart().GetText()
+	unionFields := make([]arrow.Field, 0)
 	// union also have multiple fields, so we keep popping until reaching union start(nil)
 	for l.fields[len(l.fields)-1] != nil {
 		unionFields = append(unionFields, *l.fields[len(l.fields)-1])
@@ -276,9 +284,9 @@ func (l *QueryListener) ExitUnion(ctx *parser.UnionContext) {
 
 	var thisUnion arrow.UnionType
 	if unionName == "sparse_union" {
-		thisUnion = arrow.UnionOf(arrow.SparseMode,unionFields,typeCodes)
+		thisUnion = arrow.UnionOf(arrow.SparseMode, unionFields, typeCodes)
 	} else if unionName == "dense_union" {
-		thisUnion = arrow.UnionOf(arrow.DenseMode,unionFields,typeCodes)
+		thisUnion = arrow.UnionOf(arrow.DenseMode, unionFields, typeCodes)
 	} else {
 		panic(fmt.Sprintf("Unknown union type: %s", unionName))
 	}
@@ -287,7 +295,7 @@ func (l *QueryListener) ExitUnion(ctx *parser.UnionContext) {
 	// uvNames := make([]string, len(allUnionValues))
 
 	// // set union value metadata
-    // for i,uv := range allUnionValues {
+	// for i,uv := range allUnionValues {
 	// 	uvNames[i] = uv.GetText()
 	// }
 
@@ -308,7 +316,7 @@ func (l *QueryListener) ExitDictionary(ctx *parser.DictionaryContext) {
 	log.Printf("Added dictionary: %v", thisDictionary)
 }
 
-func (l* QueryListener)ExitQuery(ctx *parser.QueryContext) {
+func (l *QueryListener) ExitQuery(ctx *parser.QueryContext) {
 	// Typestack should be empty now if everything went well
 	if len(l.typeStack) != 0 {
 		panic(fmt.Sprintf("Typestack not empty: %v", l.typeStack))
@@ -317,7 +325,7 @@ func (l* QueryListener)ExitQuery(ctx *parser.QueryContext) {
 	log.Printf("Query finished, types: %v", l.typeStack)
 	rowCountNode := ctx.COUNT()
 	if rowCountNode != nil {
-		rowCountStr := strings.Split(rowCountNode.GetText(),":")[0]
+		rowCountStr := strings.Split(rowCountNode.GetText(), ":")[0]
 		rowCount, err := strconv.Atoi(rowCountStr)
 		if err != nil {
 			panic(fmt.Sprintf("Invalid row count in query: %s, check parser", rowCountStr))
@@ -332,7 +340,7 @@ func (l* QueryListener)ExitQuery(ctx *parser.QueryContext) {
 // NewMockReader Creates a mockReader according to the query.
 // The query should be a list of types separated by commas
 // The returned mockReader will have the types in the same order
-func NewMockReader(query string) (*mockReader,int64, error) {
+func NewMockReader(query string) (*mockReader, int64, error) {
 	log.Printf("Creating mock reader for query: %s", query)
 
 	inputStream := antlr.NewInputStream(query)
@@ -340,7 +348,7 @@ func NewMockReader(query string) (*mockReader,int64, error) {
 	tokenStream := antlr.NewCommonTokenStream(lexer, antlr.TokenDefaultChannel)
 	parser := parser.NewQueryLanguageParser(tokenStream)
 
-	listener := &QueryListener{nameIdCounter: 0,lexer: lexer}
+	listener := &QueryListener{nameIdCounter: 0, lexer: lexer}
 	log.Println("Walking query tree")
 
 	parser.AddErrorListener(antlr.NewDiagnosticErrorListener(true))
@@ -354,7 +362,7 @@ func NewMockReader(query string) (*mockReader,int64, error) {
 
 	fieldsCopy := make([]arrow.Field, len(listener.fields))
 	for i, field := range listener.fields {
-		fieldsCopy[i] = *field 
+		fieldsCopy[i] = *field
 	}
 	schema := arrow.NewSchema(fieldsCopy, nil)
 
@@ -370,7 +378,7 @@ func NewMockReader(query string) (*mockReader,int64, error) {
 		currentRecordIndex: 0,
 		schema:             schema,
 		record:             mockData,
-	}, int64(listener.rows),nil
+	}, int64(listener.rows), nil
 }
 
 func (r *mockReader) Retain() {

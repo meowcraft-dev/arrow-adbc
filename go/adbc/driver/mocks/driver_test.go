@@ -221,6 +221,58 @@ func (suite *MocksDriverTests) TestIntegers() {
 	suite.Require().NoError(rdr.Err())
 }
 
+func (suite *MocksDriverTests) TestStrings() {
+	expectedRows := 5
+	query := fmt.Sprintf("%d:string", expectedRows)
+	suite.Require().NoError(suite.stmt.SetSqlQuery(query))
+	rdr, n, err := suite.stmt.ExecuteQuery(suite.ctx)
+	suite.Require().NoError(err)
+	defer rdr.Release()
+
+	result := rdr.Record()
+
+	suite.EqualValues(expectedRows, n)
+	suite.True(rdr.Next())
+
+	expectedSchema := arrow.NewSchema([]arrow.Field{
+		{Type: arrow.BinaryTypes.String, Name: "utf8#0"},
+	}, nil)
+
+	j, _ := json.MarshalIndent(result, "", "  ")
+	fmt.Println(string(j))
+
+	expectedRecords, _, err := array.RecordFromJSON(
+		suite.Quirks.Alloc(),
+		expectedSchema,
+		bytes.NewReader([]byte(`[
+			{
+				"utf8#0": "0"
+			},
+			{
+				"utf8#0": "01"
+			},
+			{
+				"utf8#0": "002"
+			},
+			{
+				"utf8#0": "0003"
+			},
+			{
+				"utf8#0": "00004"
+			}
+		]`)),
+	)
+
+	suite.Equal(expectedSchema, rdr.Schema())
+	suite.Require().NoError(err)
+	defer expectedRecords.Release()
+
+	suite.Truef(array.RecordEqual(expectedRecords, result), "expected: %s\ngot: %s", expectedRecords, result)
+
+	suite.False(rdr.Next())
+	suite.Require().NoError(rdr.Err())
+}
+
 func (suite *MocksDriverTests) TestSimpleList() {
 	expectedRows := 1
 	query := fmt.Sprintf("%d:list<int8>", expectedRows)
@@ -443,7 +495,7 @@ func (suite *MocksDriverTests) TestSparseUnion1() {
 		bytes.NewReader([]byte(`[
 			{ "sparse_union#3": [0, true] },
 			{ "sparse_union#3": [1, 1] },
-			{ "sparse_union#3": [2, "2"] }
+			{ "sparse_union#3": [2, "002"] }
 		]`)),
 	)
 
@@ -531,7 +583,7 @@ func (suite *MocksDriverTests) TestSparseUnion3() {
 		bytes.NewReader([]byte(`[
 			{ "sparse_union#3": [0, true] },
 			{ "sparse_union#3": [1, 1] },
-			{ "sparse_union#3": [2, "2"] },
+			{ "sparse_union#3": [2, "002"] },
 			{ "sparse_union#3": [0, false] },
 			{ "sparse_union#3": [1, -4] }
 		]`)),
@@ -670,7 +722,7 @@ func (suite *MocksDriverTests) TestDenseUnion3() {
 			{ "dense_union#3": [2, "0"] },
 			{ "dense_union#3": [0, false] },
 			{ "dense_union#3": [1, 1] },
-			{ "dense_union#3": [2, "1"] }
+			{ "dense_union#3": [2, "01"] }
 		]`)),
 	)
 
@@ -709,8 +761,8 @@ func (suite *MocksDriverTests) TestDictionary() {
 		expectedSchema,
 		bytes.NewReader([]byte(`[
 			{"dictionary#0":"0"},
-			{"dictionary#0":"1"},
-			{"dictionary#0":"2"}
+			{"dictionary#0":"01"},
+			{"dictionary#0":"002"}
 		]`)),
 	)
 
@@ -738,16 +790,16 @@ func (suite *MocksDriverTests) TestRee() {
 
 	expectedSchema := arrow.NewSchema([]arrow.Field{{
 		Name: "run_end_encoded#0",
-		Type: arrow.RunEndEncodedOf(arrow.PrimitiveTypes.Int32,arrow.BinaryTypes.String),
+		Type: arrow.RunEndEncodedOf(arrow.PrimitiveTypes.Int32, arrow.BinaryTypes.String),
 	}}, nil)
 
 	expectedRecords, _, err := array.RecordFromJSON(
 		suite.Quirks.Alloc(),
 		expectedSchema,
 		bytes.NewReader([]byte(`[
-			{ "run_end_encoded#0": "1" },
-			{ "run_end_encoded#0": "2" },
-			{ "run_end_encoded#0": "3" }
+			{ "run_end_encoded#0": "0" },
+			{ "run_end_encoded#0": "01" },
+			{ "run_end_encoded#0": "002" }
 		]`)),
 	)
 
@@ -760,9 +812,9 @@ func (suite *MocksDriverTests) TestRee() {
 	suite.Require().NoError(rdr.Err())
 }
 
-func (suite *MocksDriverTests) Test() {
-	expectedRows := 3
-	query := fmt.Sprintf("%d:ree<string>", expectedRows)
+func (suite *MocksDriverTests) TestDate() {
+	expectedRows := 5
+	query := fmt.Sprintf("%d:date32,date64", expectedRows)
 	suite.Require().NoError(suite.stmt.SetSqlQuery(query))
 	rdr, n, err := suite.stmt.ExecuteQuery(suite.ctx)
 	suite.Require().NoError(err)
@@ -773,18 +825,44 @@ func (suite *MocksDriverTests) Test() {
 	suite.EqualValues(expectedRows, n)
 	suite.True(rdr.Next())
 
-	expectedSchema := arrow.NewSchema([]arrow.Field{{
-		Name: "run_end_encoded#0",
-		Type: arrow.RunEndEncodedOf(arrow.PrimitiveTypes.Int32, arrow.BinaryTypes.String),
-	}}, nil)
+	expectedSchema := arrow.NewSchema([]arrow.Field{
+		{
+			Type: arrow.FixedWidthTypes.Date32,
+			Name: "date32#0",
+		},
+		{
+			Type: arrow.FixedWidthTypes.Date64,
+			Name: "date64#1",
+		},
+	}, nil)
+
+	j, _ := json.MarshalIndent(result, "", "  ")
+	fmt.Println(string(j))
 
 	expectedRecords, _, err := array.RecordFromJSON(
 		suite.Quirks.Alloc(),
 		expectedSchema,
 		bytes.NewReader([]byte(`[
-			{ "run_end_encoded#0": "1" },
-			{ "run_end_encoded#0": "2" },
-			{ "run_end_encoded#0": "3" }
+			{
+				"date32#0": "1984-01-01",
+				"date64#1": "1984-01-01"
+			},
+			{
+				"date32#0": "1984-01-02",
+				"date64#1": "1984-01-02"
+			},
+			{
+				"date32#0": "1984-01-03",
+				"date64#1": "1984-01-03"
+			},
+			{
+				"date32#0": "1984-01-04",
+				"date64#1": "1984-01-04"
+			},
+			{
+				"date32#0": "1984-01-05",
+				"date64#1": "1984-01-05"
+			}
 		]`)),
 	)
 

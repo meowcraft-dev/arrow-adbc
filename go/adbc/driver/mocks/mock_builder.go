@@ -19,10 +19,12 @@ package mocks
 
 import (
 	"encoding/binary"
+	"fmt"
 	"log"
 	"math"
 	"math/big"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/apache/arrow/go/v17/arrow"
@@ -58,21 +60,21 @@ func init() {
 		//
 		// commented out until mock function implemented
 		//
-		int(arrow.TIMESTAMP):         mockTimestamp,
-		int(arrow.TIME32):            mockTime32,
-		int(arrow.TIME64):            mockTime64,
-		int(arrow.INTERVAL_MONTHS):   mockIntervalMonths,
-		int(arrow.INTERVAL_DAY_TIME): mockIntervalDays,
+		int(arrow.TIMESTAMP):               mockTimestamp,
+		int(arrow.TIME32):                  mockTime32,
+		int(arrow.TIME64):                  mockTime64,
+		int(arrow.INTERVAL_MONTHS):         mockIntervalMonths,
+		int(arrow.INTERVAL_DAY_TIME):       mockIntervalDays,
 		int(arrow.INTERVAL_MONTH_DAY_NANO): mockIntervalMonthDayNano,
-		int(arrow.DECIMAL128):        mockDecimal128,
-		int(arrow.DECIMAL256):        mockDecimal256,
-		int(arrow.LIST):              mockList,
-		int(arrow.STRUCT):            mockStruct,
-		int(arrow.SPARSE_UNION):      mockSparseUnion,
-		int(arrow.DENSE_UNION):       mockDenseUnion,
-		int(arrow.DICTIONARY):        mockDictionary,
-		int(arrow.DURATION):          mockDuration,
-		int(arrow.RUN_END_ENCODED):   mockRunEndEncoded,
+		int(arrow.DECIMAL128):              mockDecimal128,
+		int(arrow.DECIMAL256):              mockDecimal256,
+		int(arrow.LIST):                    mockList,
+		int(arrow.STRUCT):                  mockStruct,
+		int(arrow.SPARSE_UNION):            mockSparseUnion,
+		int(arrow.DENSE_UNION):             mockDenseUnion,
+		int(arrow.DICTIONARY):              mockDictionary,
+		int(arrow.DURATION):                mockDuration,
+		int(arrow.RUN_END_ENCODED):         mockRunEndEncoded,
 	}
 }
 
@@ -204,7 +206,8 @@ func mockString(field arrow.Field, rows int) arrow.Array {
 	builder := array.NewStringBuilder(memory.DefaultAllocator)
 
 	for i := 0; i < rows; i++ {
-		builder.Append(strconv.Itoa(i))
+		value := strconv.Itoa(i)
+		builder.Append(fmt.Sprintf("%s%s", strings.Repeat("0", i+1-len(value)), value))
 	}
 
 	return builder.NewArray()
@@ -214,7 +217,8 @@ func mockBinary(field arrow.Field, rows int) arrow.Array {
 	builder := array.NewBinaryBuilder(memory.DefaultAllocator, arrow.BinaryTypes.Binary)
 
 	for i := 0; i < rows; i++ {
-		builder.Append([]byte(strconv.Itoa(i)))
+		value := strconv.Itoa(i)
+		builder.Append([]byte(strings.Repeat("0", i+1-len(value))))
 	}
 
 	return builder.NewArray()
@@ -248,7 +252,7 @@ func mockDate64(field arrow.Field, rows int) arrow.Array {
 	builder := array.NewDate64Builder(memory.DefaultAllocator)
 
 	for i := 0; i < rows; i++ {
-		builder.Append(arrow.Date64FromTime(time.Date(1984, 1, 1, 0, 0, 0, 0, time.UTC).AddDate(0, 0, i)))
+		builder.Append(arrow.Date64FromTime(time.Date(1984, 1, 1, 0, 0, 0, 0, time.UTC).AddDate(0, 0, i).Add(time.Millisecond * time.Duration(i))))
 	}
 
 	return builder.NewArray()
@@ -476,11 +480,11 @@ func mockDuration(field arrow.Field, rows int) arrow.Array {
 
 func mockRunEndEncoded(field arrow.Field, rows int) arrow.Array {
 	innerType := field.Type.(*arrow.RunEndEncodedType).Encoded()
-	innerValue := handlerForType[int(innerType.ID())](arrow.Field{Type: innerType}, rows+1)
+	innerValue := handlerForType[int(innerType.ID())](arrow.Field{Type: innerType}, rows)
 
 	runEndsBuilder := array.NewInt32Builder(memory.DefaultAllocator)
-	for i := 0; i < rows+1; i++ {
-		runEndsBuilder.Append(int32(i))
+	for i := 0; i < rows; i++ {
+		runEndsBuilder.Append(int32(i)+1)
 	}
 	runEnds := runEndsBuilder.NewArray()
 

@@ -219,6 +219,10 @@ func (l *QueryListener) EnterDictionary(ctx *parser.DictionaryContext) {
 	// log.Printf("Entering dictionary")
 }
 
+func (l *QueryListener) EnterRunEndEncoded(ctx *parser.RunEndEncodedContext) {
+	// log.Printf("Entering RunEndEncoded")
+}
+
 func (l *QueryListener) ExitList(ctx *parser.ListContext) {
 	innerType := l.typeStack[len(l.typeStack)-1]
 	log.Printf("Exiting list, Inner type: %v", innerType)
@@ -314,6 +318,19 @@ func (l *QueryListener) ExitDictionary(ctx *parser.DictionaryContext) {
 	}
 	l.typeStack = append(l.typeStack, thisDictionary)
 	log.Printf("Added dictionary: %v", thisDictionary)
+}
+
+func (l *QueryListener) ExitRunEndEncoded(ctx *parser.RunEndEncodedContext) {
+	log.Printf("Exiting RunEndEncoded")
+	innerType := l.typeStack[len(l.typeStack)-1]
+	l.typeStack = l.typeStack[:len(l.typeStack)-1]
+
+	thisRee := arrow.RunEndEncodedOf(
+		arrow.PrimitiveTypes.Int32,
+		innerType,
+	)
+	l.typeStack = append(l.typeStack, thisRee)
+	log.Printf("Added RunEndEncoded: %v", thisRee)
 }
 
 func (l *QueryListener) ExitQuery(ctx *parser.QueryContext) {

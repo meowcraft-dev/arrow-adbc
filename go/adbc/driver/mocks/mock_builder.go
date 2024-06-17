@@ -63,6 +63,7 @@ func init() {
 		int(arrow.TIME64):            mockTime64,
 		int(arrow.INTERVAL_MONTHS):   mockIntervalMonths,
 		int(arrow.INTERVAL_DAY_TIME): mockIntervalDays,
+		int(arrow.INTERVAL_MONTH_DAY_NANO): mockIntervalMonthDayNano,
 		int(arrow.DECIMAL128):        mockDecimal128,
 		int(arrow.DECIMAL256):        mockDecimal256,
 		int(arrow.LIST):              mockList,
@@ -70,10 +71,8 @@ func init() {
 		int(arrow.SPARSE_UNION):      mockSparseUnion,
 		int(arrow.DENSE_UNION):       mockDenseUnion,
 		int(arrow.DICTIONARY):        mockDictionary,
-		// int(arrow.MAP):          mockMap,
-		//
-		// TODO: add other types
-		int(arrow.DURATION): mockDuration,
+		int(arrow.DURATION):          mockDuration,
+		int(arrow.RUN_END_ENCODED):   mockRunEndEncoded,
 	}
 }
 
@@ -306,6 +305,16 @@ func mockIntervalDays(field arrow.Field, rows int) arrow.Array {
 	return builder.NewArray()
 }
 
+func mockIntervalMonthDayNano(field arrow.Field, rows int) arrow.Array {
+	builder := array.NewMonthDayNanoIntervalBuilder(memory.DefaultAllocator)
+
+	for i := 0; i < rows; i++ {
+		builder.Append(arrow.MonthDayNanoInterval{Months: int32(i), Days: int32(i), Nanoseconds: int64(i)})
+	}
+
+	return builder.NewArray()
+}
+
 func mockDecimal128(field arrow.Field, rows int) arrow.Array {
 	builder := array.NewDecimal128Builder(memory.DefaultAllocator, field.Type.(*arrow.Decimal128Type))
 	number := big.NewInt(math.MaxInt64)
@@ -463,6 +472,19 @@ func mockDuration(field arrow.Field, rows int) arrow.Array {
 	}
 
 	return builder.NewArray()
+}
+
+func mockRunEndEncoded(field arrow.Field, rows int) arrow.Array {
+	innerType := field.Type.(*arrow.RunEndEncodedType).Encoded()
+	innerValue := handlerForType[int(innerType.ID())](arrow.Field{Type: innerType}, rows+1)
+
+	runEndsBuilder := array.NewInt32Builder(memory.DefaultAllocator)
+	for i := 0; i < rows+1; i++ {
+		runEndsBuilder.Append(int32(i))
+	}
+	runEnds := runEndsBuilder.NewArray()
+
+	return array.NewRunEndEncodedArray(runEnds, innerValue, rows, 0)
 }
 
 func PopulateSchema(schema *arrow.Schema, rows int) arrow.Record {

@@ -21,7 +21,7 @@ union: (SPARSE_UNION | DENSE_UNION) '<' unionField (
 		',' unionField
 	)* ('%' unionValue (',' unionValue)*)? '>';
 dictionary:
-	('dict' | 'dictionary') '<' COUNT type ',' dictEntry (
+	('dict' | 'dictionary') '<' type ',' dictEntry (
 		',' dictEntry
 	)* '>';
 list: 'list' '<' (COUNT)? type '>';

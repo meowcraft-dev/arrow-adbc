@@ -207,6 +207,10 @@ func (l *QueryListener) EnterUnion(ctx *parser.UnionContext) {
 	l.fields = append(l.fields, nil)
 }
 
+func (l *QueryListener) EnterDictionary(ctx *parser.DictionaryContext) {
+	// log.Printf("Entering dictionary")
+}
+
 func (l *QueryListener) ExitList(ctx *parser.ListContext) {
 	innerType := l.typeStack[len(l.typeStack)-1]
 	log.Printf("Exiting list, Inner type: %v", innerType)
@@ -289,6 +293,19 @@ func (l *QueryListener) ExitUnion(ctx *parser.UnionContext) {
 
 	l.typeStack = append(l.typeStack, thisUnion)
 	log.Printf("Added union: %v", thisUnion)
+}
+
+func (l *QueryListener) ExitDictionary(ctx *parser.DictionaryContext) {
+	log.Printf("Exiting dictionary")
+	innerType := l.typeStack[len(l.typeStack)-1]
+	l.typeStack = l.typeStack[:len(l.typeStack)-1]
+
+	thisDictionary := &arrow.DictionaryType{
+		IndexType: arrow.PrimitiveTypes.Int32,
+		ValueType: innerType,
+	}
+	l.typeStack = append(l.typeStack, thisDictionary)
+	log.Printf("Added dictionary: %v", thisDictionary)
 }
 
 func (l* QueryListener)ExitQuery(ctx *parser.QueryContext) {

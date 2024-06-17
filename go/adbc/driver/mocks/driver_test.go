@@ -720,3 +720,40 @@ func (suite *MocksDriverTests) TestDictionary() {
 	suite.False(rdr.Next())
 	suite.Require().NoError(rdr.Err())
 }
+
+func (suite *MocksDriverTests) TestRee() {
+	expectedRows := 3
+	query := fmt.Sprintf("%d:ree<string>", expectedRows)
+	suite.Require().NoError(suite.stmt.SetSqlQuery(query))
+	rdr, n, err := suite.stmt.ExecuteQuery(suite.ctx)
+	suite.Require().NoError(err)
+	defer rdr.Release()
+
+	result := rdr.Record()
+
+	suite.EqualValues(expectedRows, n)
+	suite.True(rdr.Next())
+
+	expectedSchema := arrow.NewSchema([]arrow.Field{{
+		Name: "run_end_encoded#0",
+		Type: arrow.RunEndEncodedOf(arrow.PrimitiveTypes.Int32,arrow.BinaryTypes.String),
+	}}, nil)
+
+	expectedRecords, _, err := array.RecordFromJSON(
+		suite.Quirks.Alloc(),
+		expectedSchema,
+		bytes.NewReader([]byte(`[
+			{ "run_end_encoded#0": "1" },
+			{ "run_end_encoded#0": "2" },
+			{ "run_end_encoded#0": "3" }
+		]`)),
+	)
+
+	suite.Require().NoError(err)
+	defer expectedRecords.Release()
+
+	suite.Truef(array.RecordEqual(expectedRecords, result), "expected: %s\ngot: %s", expectedRecords, result)
+
+	suite.False(rdr.Next())
+	suite.Require().NoError(rdr.Err())
+}

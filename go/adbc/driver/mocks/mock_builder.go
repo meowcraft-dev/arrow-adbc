@@ -272,6 +272,10 @@ func mockFloat16(field arrow.Field, rows int, level int) arrow.Array {
 				builder.Append(float16.New(0))
 			case 6:
 				builder.Append(float16.New(float32(math.Copysign(0, -1))))
+			case 7:
+				builder.Append(float16.FromBits(1))
+			case 8:
+				builder.Append(float16.FromBits(1).Negate())
 			default:
 				builder.Append(float16.New(float32(i*[]int{-1, 1}[i%2]) / 10))
 			}

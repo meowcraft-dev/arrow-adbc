@@ -160,7 +160,7 @@ func (suite *MocksDriverTests) TestRowCount() {
 }
 
 func (suite *MocksDriverTests) TestIntegers() {
-	expectedRows := 2
+	expectedRows := 3
 	query := fmt.Sprintf("%d:int8,uint8,int16,uint16,int32,uint32,int64,uint64", expectedRows)
 	suite.Require().NoError(suite.stmt.SetSqlQuery(query))
 	rdr, n, err := suite.stmt.ExecuteQuery(suite.ctx)
@@ -189,24 +189,34 @@ func (suite *MocksDriverTests) TestIntegers() {
 		bytes.NewReader([]byte(`
 		[
 			{
-				"int16#2": 0,
-				"int32#4": 0,
-				"int64#6": 0,
-				"int8#0": 0,
+				"int8#0": -128,
+				"uint8#1": 0,
+				"int16#2": -32768,
 				"uint16#3": 0,
+				"int32#4": -2147483648,
 				"uint32#5": 0,
-				"uint64#7": 0,
-				"uint8#1": 0
+				"int64#6": -9223372036854775808,
+				"uint64#7": 0
 			},
 			{
-				"int16#2": 1,
-				"int32#4": 1,
-				"int64#6": 1,
-				"int8#0": 1,
-				"uint16#3": 1,
-				"uint32#5": 1,
-				"uint64#7": 1,
-				"uint8#1": 1
+				"int8#0": 127,
+				"uint8#1": 255,
+				"int16#2": 32767,
+				"uint16#3": 65535,
+				"int32#4": 2147483647,
+				"uint32#5": 4294967295,
+				"int64#6": 9223372036854775807,
+				"uint64#7": 18446744073709551615
+			},
+			{
+				"int8#0": -2,
+				"uint8#1": 2,
+				"int16#2": -2,
+				"uint16#3": 2,
+				"int32#4": -2,
+				"uint32#5": 2,
+				"int64#6": -2,
+				"uint64#7": 2
 			}
 		]`)),
 	)
@@ -220,6 +230,46 @@ func (suite *MocksDriverTests) TestIntegers() {
 	suite.False(rdr.Next())
 	suite.Require().NoError(rdr.Err())
 }
+
+// func (suite *MocksDriverTests) TestFloats() {
+// 	expectedRows := 9
+// 	query := fmt.Sprintf("%d:f16,f32,f64", expectedRows)
+// 	suite.Require().NoError(suite.stmt.SetSqlQuery(query))
+// 	rdr, n, err := suite.stmt.ExecuteQuery(suite.ctx)
+// 	suite.Require().NoError(err)
+// 	defer rdr.Release()
+
+// 	result := rdr.Record()
+
+// 	suite.EqualValues(expectedRows, n)
+// 	suite.True(rdr.Next())
+
+// 	expectedSchema := arrow.NewSchema([]arrow.Field{
+// 		{Name: "float16#0", Type: arrow.FixedWidthTypes.Float16},
+// 		{Name: "float32#1", Type: arrow.PrimitiveTypes.Float32},
+// 		{Name: "float64#2", Type: arrow.PrimitiveTypes.Float64},
+// 	}, nil)
+
+// 	expectedRecords, _, err := array.RecordFromJSON(
+// 		suite.Quirks.Alloc(),
+// 		expectedSchema,
+// 		bytes.NewReader([]byte(`
+// 		[
+// 			{
+// 				// There's no infinity or NaN in json, so we have to find another way
+// 			}
+// 		]`)),
+// 	)
+
+// 	suite.Equal(expectedSchema, rdr.Schema())
+// 	suite.Require().NoError(err)
+// 	defer expectedRecords.Release()
+
+// 	suite.Truef(array.RecordEqual(expectedRecords, result), "expected: %s\ngot: %s", expectedRecords, result)
+
+// 	suite.False(rdr.Next())
+// 	suite.Require().NoError(rdr.Err())
+// }
 
 func (suite *MocksDriverTests) TestStrings() {
 	expectedRows := 5
@@ -444,12 +494,15 @@ func (suite *MocksDriverTests) TestAlias() {
 		},
 	}, nil)
 
+	j, _ := json.MarshalIndent(result, "", "  ")
+	fmt.Println(string(j))
+
 	expectedRecords, _, err := array.RecordFromJSON(
 		suite.Quirks.Alloc(),
 		expectedSchema,
 		bytes.NewReader([]byte(`[
-			{ "date32#2": "1984-01-01", "float32#1": 0, "int8#0": 0 },
-			{ "date32#2": "1984-01-02", "float32#1": 0.1, "int8#0": 1 }
+			{ "date32#2": "1984-01-01", "float32#1": -3.4028235e+38, "int8#0": -128 },
+			{ "date32#2": "1984-01-02", "float32#1": 3.4028235e+38, "int8#0": 127 }
 		]`)),
 	)
 

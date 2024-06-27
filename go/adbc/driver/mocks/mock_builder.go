@@ -35,10 +35,10 @@ import (
 	"github.com/apache/arrow/go/v17/arrow/memory"
 )
 
-var handlerForType map[int]func(field arrow.Field, rows int) arrow.Array
+var handlerForType map[int]func(field arrow.Field, rows int, level int) arrow.Array
 
 func init() {
-	handlerForType = map[int]func(field arrow.Field, rows int) arrow.Array{
+	handlerForType = map[int]func(field arrow.Field, rows int, level int) arrow.Array{
 		int(arrow.NULL):              mockNull,
 		int(arrow.BOOL):              mockBool,
 		int(arrow.UINT8):             mockUint8,
@@ -78,11 +78,11 @@ func init() {
 	}
 }
 
-func mockNull(field arrow.Field, rows int) arrow.Array {
+func mockNull(field arrow.Field, rows int, level int) arrow.Array {
 	return array.NewNull(rows)
 }
 
-func mockBool(field arrow.Field, rows int) arrow.Array {
+func mockBool(field arrow.Field, rows int, level int) arrow.Array {
 	builder := array.NewBooleanBuilder(memory.DefaultAllocator)
 
 	for i := 0; i < rows; i++ {
@@ -92,117 +92,268 @@ func mockBool(field arrow.Field, rows int) arrow.Array {
 	return builder.NewArray()
 }
 
-func mockUint8(field arrow.Field, rows int) arrow.Array {
+func mockUint8(field arrow.Field, rows int, level int) arrow.Array {
 	builder := array.NewUint8Builder(memory.DefaultAllocator)
 
 	for i := 0; i < rows; i++ {
-		builder.Append(uint8(i))
+		if level == 0 {
+			switch i {
+			case 1:
+				builder.Append(uint8(math.MaxUint8))
+			default:
+				builder.Append(uint8(i))
+			}
+		} else {
+			builder.Append(uint8(i))
+		}
 	}
 
 	return builder.NewArray()
 }
 
-func mockInt8(field arrow.Field, rows int) arrow.Array {
+func mockInt8(field arrow.Field, rows int, level int) arrow.Array {
 	builder := array.NewInt8Builder(memory.DefaultAllocator)
 
 	for i := 0; i < rows; i++ {
-		builder.Append(int8(i * []int{-1, 1}[i%2]))
+		if level == 0 {
+			switch i {
+			case 0:
+				builder.Append(int8(math.MinInt8))
+			case 1:
+				builder.Append(int8(math.MaxInt8))
+			default:
+				builder.Append(int8(i * []int{-1, 1}[i%2]))
+			}
+		} else {
+			builder.Append(int8(i * []int{-1, 1}[i%2]))
+		}
 	}
 
 	return builder.NewArray()
 }
 
-func mockUint16(field arrow.Field, rows int) arrow.Array {
+func mockUint16(field arrow.Field, rows int, level int) arrow.Array {
 	builder := array.NewUint16Builder(memory.DefaultAllocator)
 
 	for i := 0; i < rows; i++ {
-		builder.Append(uint16(i))
+		if level == 0 {
+			switch i {
+			case 1:
+				builder.Append(uint16(math.MaxUint16))
+			default:
+				builder.Append(uint16(i))
+			}
+		} else {
+			builder.Append(uint16(i))
+		}
 	}
 
 	return builder.NewArray()
 }
 
-func mockInt16(field arrow.Field, rows int) arrow.Array {
+func mockInt16(field arrow.Field, rows int, level int) arrow.Array {
 	builder := array.NewInt16Builder(memory.DefaultAllocator)
 
 	for i := 0; i < rows; i++ {
-		builder.Append(int16(i * []int{-1, 1}[i%2]))
+		if level == 0 {
+			switch i {
+			case 0:
+				builder.Append(int16(math.MinInt16))
+			case 1:
+				builder.Append(int16(math.MaxInt16))
+			default:
+				builder.Append(int16(i * []int{-1, 1}[i%2]))
+			}
+		} else {
+			builder.Append(int16(i * []int{-1, 1}[i%2]))
+		}
 	}
 
 	return builder.NewArray()
 }
 
-func mockUint32(field arrow.Field, rows int) arrow.Array {
+func mockUint32(field arrow.Field, rows int, level int) arrow.Array {
 	builder := array.NewUint32Builder(memory.DefaultAllocator)
 
 	for i := 0; i < rows; i++ {
-		builder.Append(uint32(i))
+		if level == 0 {
+			switch i {
+			case 1:
+				builder.Append(uint32(math.MaxUint32))
+			default:
+				builder.Append(uint32(i))
+			}
+		} else {
+			builder.Append(uint32(i))
+		}
 	}
 
 	return builder.NewArray()
 }
 
-func mockInt32(field arrow.Field, rows int) arrow.Array {
+func mockInt32(field arrow.Field, rows int, level int) arrow.Array {
 	builder := array.NewInt32Builder(memory.DefaultAllocator)
 
 	for i := 0; i < rows; i++ {
-		builder.Append(int32(i * []int{-1, 1}[i%2]))
+		if level == 0 {
+			switch i {
+			case 0:
+				builder.Append(int32(math.MinInt32))
+			case 1:
+				builder.Append(int32(math.MaxInt32))
+			default:
+				builder.Append(int32(i * []int{-1, 1}[i%2]))
+			}
+		} else {
+			builder.Append(int32(i * []int{-1, 1}[i%2]))
+		}
 	}
 
 	return builder.NewArray()
 }
 
-func mockUint64(field arrow.Field, rows int) arrow.Array {
+func mockUint64(field arrow.Field, rows int, level int) arrow.Array {
 	builder := array.NewUint64Builder(memory.DefaultAllocator)
 
 	for i := 0; i < rows; i++ {
-		builder.Append(uint64(i))
+		if level == 0 {
+			switch i {
+			case 1:
+				builder.Append(uint64(math.MaxUint64))
+			default:
+				builder.Append(uint64(i))
+			}
+		} else {
+			builder.Append(uint64(i))
+		}
 	}
 
 	return builder.NewArray()
 }
 
-func mockInt64(field arrow.Field, rows int) arrow.Array {
+func mockInt64(field arrow.Field, rows int, level int) arrow.Array {
 	builder := array.NewInt64Builder(memory.DefaultAllocator)
 
 	for i := 0; i < rows; i++ {
-		builder.Append(int64(i * []int{-1, 1}[i%2]))
+		if level == 0 {
+			switch i {
+			case 0:
+				builder.Append(int64(math.MinInt64))
+			case 1:
+				builder.Append(int64(math.MaxInt64))
+			default:
+				builder.Append(int64(i * []int{-1, 1}[i%2]))
+			}
+		} else {
+			builder.Append(int64(i * []int{-1, 1}[i%2]))
+		}
 	}
 
 	return builder.NewArray()
 }
 
-func mockFloat16(field arrow.Field, rows int) arrow.Array {
+func mockFloat16(field arrow.Field, rows int, level int) arrow.Array {
 	builder := array.NewFloat16Builder(memory.DefaultAllocator)
 
 	for i := 0; i < rows; i++ {
-		builder.Append(float16.New(float32(i*[]int{-1, 1}[i%2]) / 10))
+		if level == 0 {
+			switch i {
+			case 0:
+				builder.Append(float16.MinNum)
+			case 1:
+				builder.Append(float16.MaxNum)
+			case 2:
+				builder.Append(float16.Inf())
+			case 3:
+				builder.Append(float16.Inf().Negate())
+			case 4:
+				builder.Append(float16.NaN())
+			case 5:
+				builder.Append(float16.New(0))
+			case 6:
+				builder.Append(float16.New(float32(math.Copysign(0, -1))))
+			default:
+				builder.Append(float16.New(float32(i*[]int{-1, 1}[i%2]) / 10))
+			}
+		} else {
+			builder.Append(float16.New(float32(i*[]int{-1, 1}[i%2]) / 10))
+		}
 	}
 
 	return builder.NewArray()
 }
 
-func mockFloat32(field arrow.Field, rows int) arrow.Array {
+func mockFloat32(field arrow.Field, rows int, level int) arrow.Array {
 	builder := array.NewFloat32Builder(memory.DefaultAllocator)
 
 	for i := 0; i < rows; i++ {
-		builder.Append(float32(i*[]int{-1, 1}[i%2]) / 10)
+		if level == 0 {
+			switch i {
+			case 0:
+				builder.Append(float32(-math.MaxFloat32))
+			case 1:
+				builder.Append(float32(math.MaxFloat32))
+			case 2:
+				builder.Append(float32(math.Inf(1)))
+			case 3:
+				builder.Append(float32(math.Inf(-1)))
+			case 4:
+				builder.Append(float32(math.NaN()))
+			case 5:
+				builder.Append(float32(math.Copysign(0, 1)))
+			case 6:
+				builder.Append(float32(math.Copysign(0, -1)))
+			case 7:
+				builder.Append(float32(math.SmallestNonzeroFloat32))
+			case 8:
+				builder.Append(float32(-math.SmallestNonzeroFloat32))
+			default:
+				builder.Append(float32(i*[]int{-1, 1}[i%2]) / 10)
+			}
+		} else {
+			builder.Append(float32(i*[]int{-1, 1}[i%2]) / 10)
+		}
 	}
 
 	return builder.NewArray()
 }
 
-func mockFloat64(field arrow.Field, rows int) arrow.Array {
+func mockFloat64(field arrow.Field, rows int, level int) arrow.Array {
 	builder := array.NewFloat64Builder(memory.DefaultAllocator)
 
 	for i := 0; i < rows; i++ {
-		builder.Append(float64(i*[]int{-1, 1}[i%2]) / 10)
+		if level == 0 {
+			switch i {
+			case 0:
+				builder.Append(float64(-math.MaxFloat64))
+			case 1:
+				builder.Append(float64(math.MaxFloat64))
+			case 2:
+				builder.Append(float64(math.Inf(1)))
+			case 3:
+				builder.Append(float64(math.Inf(-1)))
+			case 4:
+				builder.Append(float64(math.NaN()))
+			case 5:
+				builder.Append(float64(math.Copysign(0, 1)))
+			case 6:
+				builder.Append(float64(math.Copysign(0, -1)))
+			case 7:
+				builder.Append(float64(math.SmallestNonzeroFloat64))
+			case 8:
+				builder.Append(float64(-math.SmallestNonzeroFloat64))
+			default:
+				builder.Append(float64(i*[]int{-1, 1}[i%2]) / 10)
+			}
+		} else {
+			builder.Append(float64(i*[]int{-1, 1}[i%2]) / 10)
+		}
 	}
 
 	return builder.NewArray()
 }
 
-func mockString(field arrow.Field, rows int) arrow.Array {
+func mockString(field arrow.Field, rows int, level int) arrow.Array {
 	builder := array.NewStringBuilder(memory.DefaultAllocator)
 
 	for i := 0; i < rows; i++ {
@@ -213,7 +364,7 @@ func mockString(field arrow.Field, rows int) arrow.Array {
 	return builder.NewArray()
 }
 
-func mockBinary(field arrow.Field, rows int) arrow.Array {
+func mockBinary(field arrow.Field, rows int, level int) arrow.Array {
 	builder := array.NewBinaryBuilder(memory.DefaultAllocator, arrow.BinaryTypes.Binary)
 
 	for i := 0; i < rows; i++ {
@@ -224,7 +375,7 @@ func mockBinary(field arrow.Field, rows int) arrow.Array {
 	return builder.NewArray()
 }
 
-func mockFixedSizeBinary(field arrow.Field, rows int) arrow.Array {
+func mockFixedSizeBinary(field arrow.Field, rows int, level int) arrow.Array {
 	builder := array.NewFixedSizeBinaryBuilder(memory.DefaultAllocator, field.Type.(*arrow.FixedSizeBinaryType))
 	byteWidth := field.Type.(*arrow.FixedSizeBinaryType).ByteWidth
 
@@ -238,7 +389,7 @@ func mockFixedSizeBinary(field arrow.Field, rows int) arrow.Array {
 	return builder.NewArray()
 }
 
-func mockDate32(field arrow.Field, rows int) arrow.Array {
+func mockDate32(field arrow.Field, rows int, level int) arrow.Array {
 	builder := array.NewDate32Builder(memory.DefaultAllocator)
 
 	for i := 0; i < rows; i++ {
@@ -248,7 +399,7 @@ func mockDate32(field arrow.Field, rows int) arrow.Array {
 	return builder.NewArray()
 }
 
-func mockDate64(field arrow.Field, rows int) arrow.Array {
+func mockDate64(field arrow.Field, rows int, level int) arrow.Array {
 	builder := array.NewDate64Builder(memory.DefaultAllocator)
 
 	for i := 0; i < rows; i++ {
@@ -258,7 +409,7 @@ func mockDate64(field arrow.Field, rows int) arrow.Array {
 	return builder.NewArray()
 }
 
-func mockTimestamp(field arrow.Field, rows int) arrow.Array {
+func mockTimestamp(field arrow.Field, rows int, level int) arrow.Array {
 	builder := array.NewTimestampBuilder(memory.DefaultAllocator, field.Type.(*arrow.TimestampType))
 
 	for i := 0; i < rows; i++ {
@@ -269,7 +420,7 @@ func mockTimestamp(field arrow.Field, rows int) arrow.Array {
 	return builder.NewArray()
 }
 
-func mockTime32(field arrow.Field, rows int) arrow.Array {
+func mockTime32(field arrow.Field, rows int, level int) arrow.Array {
 	builder := array.NewTime32Builder(memory.DefaultAllocator, field.Type.(*arrow.Time32Type))
 
 	for i := 0; i < rows; i++ {
@@ -279,7 +430,7 @@ func mockTime32(field arrow.Field, rows int) arrow.Array {
 	return builder.NewArray()
 }
 
-func mockTime64(field arrow.Field, rows int) arrow.Array {
+func mockTime64(field arrow.Field, rows int, level int) arrow.Array {
 	builder := array.NewTime64Builder(memory.DefaultAllocator, field.Type.(*arrow.Time64Type))
 
 	for i := 0; i < rows; i++ {
@@ -289,7 +440,7 @@ func mockTime64(field arrow.Field, rows int) arrow.Array {
 	return builder.NewArray()
 }
 
-func mockIntervalMonths(field arrow.Field, rows int) arrow.Array {
+func mockIntervalMonths(field arrow.Field, rows int, level int) arrow.Array {
 	builder := array.NewMonthIntervalBuilder(memory.DefaultAllocator)
 
 	for i := 0; i < rows; i++ {
@@ -299,7 +450,7 @@ func mockIntervalMonths(field arrow.Field, rows int) arrow.Array {
 	return builder.NewArray()
 }
 
-func mockIntervalDays(field arrow.Field, rows int) arrow.Array {
+func mockIntervalDays(field arrow.Field, rows int, level int) arrow.Array {
 	builder := array.NewDayTimeIntervalBuilder(memory.DefaultAllocator)
 
 	for i := 0; i < rows; i++ {
@@ -309,7 +460,7 @@ func mockIntervalDays(field arrow.Field, rows int) arrow.Array {
 	return builder.NewArray()
 }
 
-func mockIntervalMonthDayNano(field arrow.Field, rows int) arrow.Array {
+func mockIntervalMonthDayNano(field arrow.Field, rows int, level int) arrow.Array {
 	builder := array.NewMonthDayNanoIntervalBuilder(memory.DefaultAllocator)
 
 	for i := 0; i < rows; i++ {
@@ -319,7 +470,7 @@ func mockIntervalMonthDayNano(field arrow.Field, rows int) arrow.Array {
 	return builder.NewArray()
 }
 
-func mockDecimal128(field arrow.Field, rows int) arrow.Array {
+func mockDecimal128(field arrow.Field, rows int, level int) arrow.Array {
 	builder := array.NewDecimal128Builder(memory.DefaultAllocator, field.Type.(*arrow.Decimal128Type))
 	number := big.NewInt(math.MaxInt64)
 	for i := 0; i < rows; i++ {
@@ -329,7 +480,7 @@ func mockDecimal128(field arrow.Field, rows int) arrow.Array {
 	return builder.NewArray()
 }
 
-func mockDecimal256(field arrow.Field, rows int) arrow.Array {
+func mockDecimal256(field arrow.Field, rows int, level int) arrow.Array {
 	builder := array.NewDecimal256Builder(memory.DefaultAllocator, field.Type.(*arrow.Decimal256Type))
 	number := big.NewInt(math.MaxInt64)
 	for i := 0; i < rows; i++ {
@@ -339,7 +490,7 @@ func mockDecimal256(field arrow.Field, rows int) arrow.Array {
 	return builder.NewArray()
 }
 
-func mockList(field arrow.Field, rows int) arrow.Array {
+func mockList(field arrow.Field, rows int, level int) arrow.Array {
 	listType := field.Type.(*arrow.ListType)
 	innerField := listType.ElemField()
 	listLength := 1
@@ -347,7 +498,7 @@ func mockList(field arrow.Field, rows int) arrow.Array {
 		listLength, _ = strconv.Atoi(listLengthStr)
 	}
 
-	innerValue := handlerForType[int(innerField.Type.ID())](innerField, listLength*rows)
+	innerValue := handlerForType[int(innerField.Type.ID())](innerField, listLength*rows, level+1)
 
 	offsets := make([]int32, rows+1)
 
@@ -369,7 +520,7 @@ func mockList(field arrow.Field, rows int) arrow.Array {
 	return array.NewListData(arrData)
 }
 
-func mockStruct(field arrow.Field, rows int) arrow.Array {
+func mockStruct(field arrow.Field, rows int, level int) arrow.Array {
 
 	structType := field.Type.(*arrow.StructType)
 	log.Printf("Struct type: %v", structType)
@@ -379,7 +530,7 @@ func mockStruct(field arrow.Field, rows int) arrow.Array {
 
 	for i := 0; i < structType.NumFields(); i++ {
 		innerField := structType.Field(i)
-		innerDatas[i] = handlerForType[int(innerField.Type.ID())](innerField, rows).Data()
+		innerDatas[i] = handlerForType[int(innerField.Type.ID())](innerField, rows, level+1).Data()
 	}
 
 	structData := array.NewData(field.Type, rows, []*memory.Buffer{nil}, innerDatas, 0, 0)
@@ -387,7 +538,7 @@ func mockStruct(field arrow.Field, rows int) arrow.Array {
 	return array.NewStructData(structData)
 }
 
-func mockSparseUnion(field arrow.Field, rows int) arrow.Array {
+func mockSparseUnion(field arrow.Field, rows int, level int) arrow.Array {
 	// until we figure out how to get values from the metadata
 	// we'll just create 1 value for each field
 	// so union<bool,string,int8> will be [true, "0", 0]
@@ -404,7 +555,7 @@ func mockSparseUnion(field arrow.Field, rows int) arrow.Array {
 	innerDatas := make([]arrow.Array, len(innerFields))
 	for i := 0; i < len(innerFields); i++ {
 		innerField := innerFields[i]
-		innerDatas[i] = handlerForType[int(innerField.Type.ID())](innerField, rows)
+		innerDatas[i] = handlerForType[int(innerField.Type.ID())](innerField, rows, level+1)
 	}
 
 	names := make([]string, len(innerFields))
@@ -420,7 +571,7 @@ func mockSparseUnion(field arrow.Field, rows int) arrow.Array {
 	return thisUnion
 }
 
-func mockDenseUnion(field arrow.Field, rows int) arrow.Array {
+func mockDenseUnion(field arrow.Field, rows int, level int) arrow.Array {
 	unionType := field.Type.(*arrow.DenseUnionType)
 	innerFields := unionType.Fields()
 
@@ -433,7 +584,7 @@ func mockDenseUnion(field arrow.Field, rows int) arrow.Array {
 	innerDatas := make([]arrow.Array, len(innerFields))
 	for i := 0; i < len(innerFields); i++ {
 		innerField := innerFields[i]
-		innerDatas[i] = handlerForType[int(innerField.Type.ID())](innerField, rows)
+		innerDatas[i] = handlerForType[int(innerField.Type.ID())](innerField, rows, level+1)
 	}
 
 	names := make([]string, len(innerFields))
@@ -454,10 +605,10 @@ func mockDenseUnion(field arrow.Field, rows int) arrow.Array {
 	return thisUnion
 }
 
-func mockDictionary(field arrow.Field, rows int) arrow.Array {
+func mockDictionary(field arrow.Field, rows int, level int) arrow.Array {
 	// indexType := arrow.PrimitiveTypes.Int32
 	valueType := field.Type.(*arrow.DictionaryType).ValueType
-	values := handlerForType[int(valueType.ID())](arrow.Field{Type: valueType}, rows)
+	values := handlerForType[int(valueType.ID())](arrow.Field{Type: valueType}, rows, level+1)
 
 	indicesBuilder := array.NewInt32Builder(memory.DefaultAllocator)
 	for i := 0; i < rows; i++ {
@@ -468,7 +619,7 @@ func mockDictionary(field arrow.Field, rows int) arrow.Array {
 	return array.NewDictionaryArray(field.Type, indices, values)
 }
 
-func mockDuration(field arrow.Field, rows int) arrow.Array {
+func mockDuration(field arrow.Field, rows int, level int) arrow.Array {
 	builder := array.NewDurationBuilder(memory.DefaultAllocator, field.Type.(*arrow.DurationType))
 
 	for i := 0; i < rows; i++ {
@@ -478,13 +629,13 @@ func mockDuration(field arrow.Field, rows int) arrow.Array {
 	return builder.NewArray()
 }
 
-func mockRunEndEncoded(field arrow.Field, rows int) arrow.Array {
+func mockRunEndEncoded(field arrow.Field, rows int, level int) arrow.Array {
 	innerType := field.Type.(*arrow.RunEndEncodedType).Encoded()
-	innerValue := handlerForType[int(innerType.ID())](arrow.Field{Type: innerType}, rows)
+	innerValue := handlerForType[int(innerType.ID())](arrow.Field{Type: innerType}, rows, level+1)
 
 	runEndsBuilder := array.NewInt32Builder(memory.DefaultAllocator)
 	for i := 0; i < rows; i++ {
-		runEndsBuilder.Append(int32(i)+1)
+		runEndsBuilder.Append(int32(i) + 1)
 	}
 	runEnds := runEndsBuilder.NewArray()
 
@@ -496,7 +647,7 @@ func PopulateSchema(schema *arrow.Schema, rows int) arrow.Record {
 	cols := make([]arrow.Array, len(schema.Fields()))
 
 	for i, field := range schema.Fields() {
-		cols[i] = handlerForType[int(field.Type.ID())](field, rows)
+		cols[i] = handlerForType[int(field.Type.ID())](field, rows, 0)
 	}
 
 	return array.NewRecord(schema, cols, int64(rows))

@@ -941,9 +941,6 @@ func (suite *MocksDriverTests) TestDate() {
 		},
 	}, nil)
 
-	j, _ := json.MarshalIndent(result, "", "  ")
-	fmt.Println(string(j))
-
 	expectedRecords, _, err := array.RecordFromJSON(
 		suite.Quirks.Alloc(),
 		expectedSchema,
@@ -967,6 +964,72 @@ func (suite *MocksDriverTests) TestDate() {
 			{
 				"date32#0": "1984-01-05",
 				"date64#1": "1984-01-05"
+			}
+		]`)),
+	)
+
+	suite.Require().NoError(err)
+	defer expectedRecords.Release()
+
+	suite.Truef(array.RecordEqual(expectedRecords, result), "expected: %s\ngot: %s", expectedRecords, result)
+
+	suite.False(rdr.Next())
+	suite.Require().NoError(rdr.Err())
+}
+
+func (suite *MocksDriverTests) TestTime() {
+	expectedRows := 3
+	query := fmt.Sprintf("%d:time32s,time32ms,time64us,time64ns", expectedRows)
+	suite.Require().NoError(suite.stmt.SetSqlQuery(query))
+	rdr, n, err := suite.stmt.ExecuteQuery(suite.ctx)
+	suite.Require().NoError(err)
+	defer rdr.Release()
+
+	result := rdr.Record()
+
+	suite.EqualValues(expectedRows, n)
+	suite.True(rdr.Next())
+
+	expectedSchema := arrow.NewSchema([]arrow.Field{
+		{
+			Type: arrow.FixedWidthTypes.Time32s,
+			Name: "time32s#0",
+		},
+		{
+			Type: arrow.FixedWidthTypes.Time32ms,
+			Name: "time32ms#1",
+		},
+		{
+			Type: arrow.FixedWidthTypes.Time64us,
+			Name: "time64us#2",
+		},
+		{
+			Type: arrow.FixedWidthTypes.Time64ns,
+			Name: "time64ns#3",
+		},
+	}, nil)
+
+	expectedRecords, _, err := array.RecordFromJSON(
+		suite.Quirks.Alloc(),
+		expectedSchema,
+		bytes.NewReader([]byte(`[
+			{
+				"time32s#0": "00:00:00",
+				"time32ms#1": "00:00:00",
+				"time64us#2": "00:00:00",
+				"time64ns#3": "00:00:00"
+			},
+			{
+				"time32s#0": "00:00:01",
+				"time32ms#1": "00:00:00.001",
+				"time64us#2": "00:00:00.000001",
+				"time64ns#3": "00:00:00.000000001"
+			},
+			{
+				"time32s#0": "00:00:02",
+				"time32ms#1": "00:00:00.002",
+				"time64us#2": "00:00:00.000002",
+				"time64ns#3": "00:00:00.000000002"
 			}
 		]`)),
 	)

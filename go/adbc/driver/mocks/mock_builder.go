@@ -18,6 +18,7 @@
 package mocks
 
 import (
+	"bytes"
 	"encoding/binary"
 	"fmt"
 	"log"
@@ -372,8 +373,8 @@ func mockBinary(field arrow.Field, rows int, level int) arrow.Array {
 	builder := array.NewBinaryBuilder(memory.DefaultAllocator, arrow.BinaryTypes.Binary)
 
 	for i := 0; i < rows; i++ {
-		value := strconv.Itoa(i)
-		builder.Append([]byte(strings.Repeat("0", i+1-len(value))))
+		byteArray := []byte{uint8(i)}
+		builder.Append(bytes.Repeat(byteArray, i+1))
 	}
 
 	return builder.NewArray()

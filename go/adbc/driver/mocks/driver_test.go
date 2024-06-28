@@ -323,6 +323,58 @@ func (suite *MocksDriverTests) TestStrings() {
 	suite.Require().NoError(rdr.Err())
 }
 
+func (suite *MocksDriverTests) TestBinary() {
+	expectedRows := 5
+	query := fmt.Sprintf("%d:binary", expectedRows)
+	suite.Require().NoError(suite.stmt.SetSqlQuery(query))
+	rdr, n, err := suite.stmt.ExecuteQuery(suite.ctx)
+	suite.Require().NoError(err)
+	defer rdr.Release()
+
+	result := rdr.Record()
+
+	suite.EqualValues(expectedRows, n)
+	suite.True(rdr.Next())
+
+	expectedSchema := arrow.NewSchema([]arrow.Field{
+		{Type: arrow.BinaryTypes.Binary, Name: "binary#0"},
+	}, nil)
+
+	j, _ := json.MarshalIndent(result, "", "  ")
+	fmt.Println(string(j))
+
+	expectedRecords, _, err := array.RecordFromJSON(
+		suite.Quirks.Alloc(),
+		expectedSchema,
+		bytes.NewReader([]byte(`[
+			{
+				"utf8#0": "0"
+			},
+			{
+				"utf8#0": "01"
+			},
+			{
+				"utf8#0": "002"
+			},
+			{
+				"utf8#0": "0003"
+			},
+			{
+				"utf8#0": "00004"
+			}
+		]`)),
+	)
+
+	suite.Equal(expectedSchema, rdr.Schema())
+	suite.Require().NoError(err)
+	defer expectedRecords.Release()
+
+	suite.Truef(array.RecordEqual(expectedRecords, result), "expected: %s\ngot: %s", expectedRecords, result)
+
+	suite.False(rdr.Next())
+	suite.Require().NoError(rdr.Err())
+}
+
 func (suite *MocksDriverTests) TestSimpleList() {
 	expectedRows := 1
 	query := fmt.Sprintf("%d:list<int8>", expectedRows)

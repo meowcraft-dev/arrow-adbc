@@ -340,27 +340,24 @@ func (suite *MocksDriverTests) TestBinary() {
 		{Type: arrow.BinaryTypes.Binary, Name: "binary#0"},
 	}, nil)
 
-	j, _ := json.MarshalIndent(result, "", "  ")
-	fmt.Println(string(j))
-
 	expectedRecords, _, err := array.RecordFromJSON(
 		suite.Quirks.Alloc(),
 		expectedSchema,
 		bytes.NewReader([]byte(`[
 			{
-				"utf8#0": "0"
+				"binary#0": "AA=="
 			},
 			{
-				"utf8#0": "01"
+				"binary#0": "AQE="
 			},
 			{
-				"utf8#0": "002"
+				"binary#0": "AgIC"
 			},
 			{
-				"utf8#0": "0003"
+				"binary#0": "AwMDAw=="
 			},
 			{
-				"utf8#0": "00004"
+				"binary#0": "BAQEBAQ="
 			}
 		]`)),
 	)

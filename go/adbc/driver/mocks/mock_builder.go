@@ -398,7 +398,7 @@ func mockDate32(field arrow.Field, rows int, level int) arrow.Array {
 	builder := array.NewDate32Builder(memory.DefaultAllocator)
 
 	for i := 0; i < rows; i++ {
-		builder.Append(arrow.Date32FromTime(time.Date(1984, 1, 1, 0, 0, 0, 0, time.UTC).AddDate(0, 0, i)))
+		builder.Append(arrow.Date32(i))
 	}
 
 	return builder.NewArray()

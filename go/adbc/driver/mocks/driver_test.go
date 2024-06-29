@@ -553,8 +553,8 @@ func (suite *MocksDriverTests) TestAlias() {
 		suite.Quirks.Alloc(),
 		expectedSchema,
 		bytes.NewReader([]byte(`[
-			{ "date32#2": "1984-01-01", "float32#1": -3.4028235e+38, "int8#0": -128 },
-			{ "date32#2": "1984-01-02", "float32#1": 3.4028235e+38, "int8#0": 127 }
+			{ "date32#2": "1970-01-01", "float32#1": -3.4028235e+38, "int8#0": -128 },
+			{ "date32#2": "1970-01-02", "float32#1": 3.4028235e+38, "int8#0": 127 }
 		]`)),
 	)
 
@@ -944,7 +944,7 @@ func (suite *MocksDriverTests) TestDate() {
 	recordBuilder := array.NewRecordBuilder(suite.Quirks.Alloc(), expectedSchema)
 	defer recordBuilder.Release()
 
-	recordBuilder.Field(0).(*array.Date32Builder).AppendValues([]arrow.Date32{5113,5114,5115,5116,5117},nil)
+	recordBuilder.Field(0).(*array.Date32Builder).AppendValues([]arrow.Date32{0,1,2,3,4},nil)
 	recordBuilder.Field(1).(*array.Date64Builder).AppendValues([]arrow.Date64{0,86400001,172800002,259200003,345600004},nil)
 
 	expectedRecords := recordBuilder.NewRecord()

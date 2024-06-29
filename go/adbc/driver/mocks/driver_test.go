@@ -225,7 +225,7 @@ func (suite *MocksDriverTests) TestIntegers() {
 	suite.Require().NoError(err)
 	defer expectedRecords.Release()
 
-	j, _ := json.MarshalIndent(result, "", "  ")
+	j, _ := json.MarshalIndent(expectedRecords, "", "  ")
 	fmt.Println(string(j))
 
 	suite.Truef(array.RecordEqual(expectedRecords, result), "expected: %s\ngot: %s", expectedRecords, result)

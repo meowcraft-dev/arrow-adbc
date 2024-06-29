@@ -408,7 +408,7 @@ func mockDate64(field arrow.Field, rows int, level int) arrow.Array {
 	builder := array.NewDate64Builder(memory.DefaultAllocator)
 
 	for i := 0; i < rows; i++ {
-		builder.Append(arrow.Date64FromTime(time.Date(1984, 1, 1, 0, 0, 0, 0, time.UTC).AddDate(0, 0, i).Add(time.Millisecond * time.Duration(i))))
+		builder.Append(arrow.Date64(1000*60*60*24*i + i))
 	}
 
 	return builder.NewArray()

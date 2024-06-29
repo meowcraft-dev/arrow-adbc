@@ -941,32 +941,13 @@ func (suite *MocksDriverTests) TestDate() {
 		},
 	}, nil)
 
-	expectedRecords, _, err := array.RecordFromJSON(
-		suite.Quirks.Alloc(),
-		expectedSchema,
-		bytes.NewReader([]byte(`[
-			{
-				"date32#0": "1984-01-01",
-				"date64#1": "1984-01-01"
-			},
-			{
-				"date32#0": "1984-01-02",
-				"date64#1": "1984-01-02"
-			},
-			{
-				"date32#0": "1984-01-03",
-				"date64#1": "1984-01-03"
-			},
-			{
-				"date32#0": "1984-01-04",
-				"date64#1": "1984-01-04"
-			},
-			{
-				"date32#0": "1984-01-05",
-				"date64#1": "1984-01-05"
-			}
-		]`)),
-	)
+	recordBuilder := array.NewRecordBuilder(suite.Quirks.Alloc(), expectedSchema)
+	defer recordBuilder.Release()
+
+	recordBuilder.Field(0).(*array.Date32Builder).AppendValues([]arrow.Date32{5113,5114,5115,5116,5117},nil)
+	recordBuilder.Field(1).(*array.Date64Builder).AppendValues([]arrow.Date64{0,86400001,172800002,259200003,345600004},nil)
+
+	expectedRecords := recordBuilder.NewRecord()
 
 	suite.Require().NoError(err)
 	defer expectedRecords.Release()

@@ -218,7 +218,7 @@ func (suite *MocksDriverTests) TestIntegers() {
 				"int64#6": -2,
 				"uint64#7": 2
 			}
-		]`)),
+		]`)), array.WithUseNumber(),
 	)
 
 	suite.Equal(expectedSchema, rdr.Schema())

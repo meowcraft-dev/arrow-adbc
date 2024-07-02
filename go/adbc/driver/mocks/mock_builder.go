@@ -26,7 +26,6 @@ import (
 	"math/big"
 	"strconv"
 	"strings"
-	"time"
 
 	"github.com/apache/arrow/go/v17/arrow"
 	"github.com/apache/arrow/go/v17/arrow/array"
@@ -418,8 +417,7 @@ func mockTimestamp(field arrow.Field, rows int, level int) arrow.Array {
 	builder := array.NewTimestampBuilder(memory.DefaultAllocator, field.Type.(*arrow.TimestampType))
 
 	for i := 0; i < rows; i++ {
-		timestamp, _ := arrow.TimestampFromTime(time.Date(1984, 1, 1, 0, 0, 0, 0, time.UTC).AddDate(0, 0, i), field.Type.(*arrow.TimestampType).TimeUnit())
-		builder.Append(timestamp)
+		builder.Append(arrow.Timestamp(i))
 	}
 
 	return builder.NewArray()

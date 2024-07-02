@@ -1155,6 +1155,95 @@ func (suite *MocksDriverTests) TestDuration() {
 	suite.Require().NoError(rdr.Err())
 }
 
+func (suite *MocksDriverTests) TestInterval() {
+	expectedRows := 3
+	query := fmt.Sprintf("%d:interval_month,interval_daytime,interval_monthdaynano", expectedRows)
+	suite.Require().NoError(suite.stmt.SetSqlQuery(query))
+	rdr, n, err := suite.stmt.ExecuteQuery(suite.ctx)
+	suite.Require().NoError(err)
+	defer rdr.Release()
+
+	result := rdr.Record()
+
+	j, _ := json.MarshalIndent(result, "", "  ")
+	fmt.Println(string(j))
+
+	suite.EqualValues(expectedRows, n)
+	suite.True(rdr.Next())
+
+	expectedSchema := arrow.NewSchema([]arrow.Field{
+		{
+			Type: arrow.FixedWidthTypes.MonthInterval,
+			Name: "month_interval#0",
+		},
+		{
+			Type: arrow.FixedWidthTypes.DayTimeInterval,
+			Name: "day_time_interval#1",
+		},
+		{
+			Type: arrow.FixedWidthTypes.MonthDayNanoInterval,
+			Name: "month_day_nano_interval#2",
+		},
+	}, nil)
+
+	expectedRecords, _, err := array.RecordFromJSON(
+		suite.Quirks.Alloc(),
+		expectedSchema,
+		bytes.NewReader([]byte(`[
+			{
+				"day_time_interval#1": {
+				"days": 0,
+				"milliseconds": 0
+				},
+				"month_day_nano_interval#2": {
+				"months": 0,
+				"days": 0,
+				"nanoseconds": 0
+				},
+				"month_interval#0": {
+				"months": 0
+				}
+			},
+			{
+				"day_time_interval#1": {
+				"days": 1,
+				"milliseconds": 1
+				},
+				"month_day_nano_interval#2": {
+				"months": 1,
+				"days": 1,
+				"nanoseconds": 1
+				},
+				"month_interval#0": {
+				"months": 1
+				}
+			},
+			{
+				"day_time_interval#1": {
+				"days": 2,
+				"milliseconds": 2
+				},
+				"month_day_nano_interval#2": {
+				"months": 2,
+				"days": 2,
+				"nanoseconds": 2
+				},
+				"month_interval#0": {
+				"months": 2
+				}
+			}
+		]`)),
+	)
+
+	suite.Require().NoError(err)
+	defer expectedRecords.Release()
+
+	suite.Truef(array.RecordEqual(expectedRecords, result), "expected: %s\ngot: %s", expectedRecords, result)
+
+	suite.False(rdr.Next())
+	suite.Require().NoError(rdr.Err())
+}
+
 // func (suite *MocksDriverTests) TestEverything() {
 // 	suite.T().Skip("TODO")
 // 	expectedRows := 6
